@@ -1,0 +1,7 @@
+target/
+Cargo.lock
+app/node_modules/
+app/dist/
+app/.vite-cache/
+node_modules/
+package-lock.json
