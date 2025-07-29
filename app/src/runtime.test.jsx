@@ -3,6 +3,10 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { useState } from 'react'
 import { useJitterScope } from '../runtime.js'
 
+// These tests manually apply the instrumentation that the SWC plugin would
+// normally inject. Running the actual plugin inside Vitest was unreliable in
+// this environment, so we simulate its output here to verify the runtime logic.
+
 function useObj(n) {
   return { n }
 }
