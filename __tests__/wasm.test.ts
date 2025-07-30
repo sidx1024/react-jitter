@@ -1,10 +1,14 @@
 import { expect, test } from "vitest";
 import { transform } from "@swc/core";
-import fs from "node:fs";
+import type { ParserConfig } from "@swc/core";
 import path from "node:path";
 import url from "node:url";
+import fs from "node:fs";
 
-const pluginName = "swc_plugin_react_jitter.wasm";
+const pluginName =
+  process.env.TEST_DEBUG === "true"
+    ? "swc_plugin_react_jitter_debug.wasm"
+    : "swc_plugin_react_jitter.wasm";
 const pluginPath = path.join(
   path.dirname(url.fileURLToPath(import.meta.url)),
   "..",
@@ -16,9 +20,14 @@ const transformCode = async (
   options = {},
   filename = "test.jsx"
 ) => {
+  const ext = path.extname(filename);
+  const isTypescript = ext === ".ts" || ext === ".tsx";
+  const parser: ParserConfig = isTypescript
+    ? { syntax: "typescript", tsx: ext === ".tsx" }
+    : { syntax: "ecmascript", jsx: true };
   return transform(code, {
     jsc: {
-      parser: { syntax: "ecmascript", jsx: true },
+      parser,
       target: "es2018",
       experimental: { plugins: [[pluginPath, options]] },
     },
@@ -26,19 +35,18 @@ const transformCode = async (
   });
 };
 
-const fixtureRoot = path.join(
+const fixturesDir = path.join(
   path.dirname(url.fileURLToPath(import.meta.url)),
-  "../transform/tests/fixture"
+  "fixtures"
 );
-const fixtureDirs = fs.readdirSync(fixtureRoot);
+const fixtureFiles = fs
+  .readdirSync(fixturesDir)
+  .filter((f) => f.endsWith(".jsx") || f.endsWith(".tsx"));
 
-for (const dir of fixtureDirs) {
-  test(`fixture: ${dir}`, async () => {
-    const inputPath = path.join(fixtureRoot, dir, "input.js");
-    const outputPath = path.join(fixtureRoot, dir, "output.js");
-    const input = fs.readFileSync(inputPath, "utf-8");
-    const expected = fs.readFileSync(outputPath, "utf-8");
-    const { code } = await transformCode(input, {}, inputPath);
-    expect(code.trim()).toBe(expected.trim());
+for (const file of fixtureFiles) {
+  test(`fixture: ${file}`, async () => {
+    const input = fs.readFileSync(path.join(fixturesDir, file), "utf-8");
+    const { code } = await transformCode(input, {}, file);
+    expect(code.trim()).toMatchSnapshot();
   });
 }
