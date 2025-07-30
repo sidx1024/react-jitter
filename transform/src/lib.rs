@@ -63,6 +63,15 @@ impl JitterTransform {
         Self { cm, current_component: None, file_path, ignored_hooks: ignored_hooks.into_iter().collect() }
     }
 
+    fn generate_location_hash(&self, file: &str, line: f64, offset: f64) -> String {
+        use sha2::{Sha256, Digest};
+        let input = format!("{}:{}:{}", file, line, offset);
+        let mut hasher = Sha256::new();
+        hasher.update(input.as_bytes());
+        let result = hasher.finalize();
+        hex::encode(&result[..4]) // Use first 8 characters (4 bytes) of hash
+    }
+
     fn line_col(&self, span: Span) -> Loc {
         self.cm.lookup_char_pos(span.lo())
     }
@@ -72,36 +81,7 @@ impl JitterTransform {
         s.starts_with("use") && !self.ignored_hooks.contains(s)
     }
 
-    fn make_simple_h_decl(&self, name: &Ident) -> Stmt {
-        self.make_h_decl(Expr::Lit(Lit::Str(Str {
-            span: DUMMY_SP,
-            value: name.sym.clone(),
-            raw: None,
-        })))
-    }
 
-    fn make_h_decl(&self, arg: Expr) -> Stmt {
-        let h_ident = quote_ident!("h");
-        let call_expr = Expr::Call(CallExpr {
-            span: DUMMY_SP,
-            callee: quote_ident!("useJitterScope").as_callee(),
-            args: vec![arg.as_arg()],
-            type_args: None,
-            ctxt: SyntaxContext::empty(),
-        });
-        Stmt::Decl(Decl::Var(Box::new(VarDecl {
-            span: DUMMY_SP,
-            kind: VarDeclKind::Const,
-            declare: false,
-            decls: vec![VarDeclarator {
-                span: DUMMY_SP,
-                name: Pat::Ident(h_ident.into()),
-                init: Some(Box::new(call_expr)),
-                definite: false,
-            }],
-            ctxt: SyntaxContext::empty(),
-        })))
-    }
 }
 
 impl VisitMut for JitterTransform {
@@ -146,6 +126,9 @@ impl VisitMut for JitterTransform {
                 self.current_component = Some(ident.clone());
             }
             if let Some(body) = &mut fn_expr.function.body {
+                let linecol = self.line_col(n.span);
+                let hash = self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64);
+
                 let meta_obj = Expr::Object(ObjectLit {
                     span: DUMMY_SP,
                     props: vec![
@@ -162,6 +145,14 @@ impl VisitMut for JitterTransform {
                             }))),
                         }))),
                         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(quote_ident!("id").into()),
+                            value: Box::new(Expr::Lit(Lit::Str(Str {
+                                span: DUMMY_SP,
+                                value: hash.into(),
+                                raw: None,
+                            }))),
+                        }))),
+                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                             key: PropName::Ident(quote_ident!("file").into()),
                             value: Box::new(Expr::Lit(Lit::Str(Str {
                                 span: DUMMY_SP,
@@ -173,7 +164,7 @@ impl VisitMut for JitterTransform {
                             key: PropName::Ident(quote_ident!("line").into()),
                             value: Box::new(Expr::Lit(Lit::Num(Number {
                                 span: DUMMY_SP,
-                                value: (line_num_global + 1) as f64,
+                                value: linecol.line as f64,
                                 raw: None,
                             }))),
                         }))),
@@ -181,13 +172,31 @@ impl VisitMut for JitterTransform {
                             key: PropName::Ident(quote_ident!("offset").into()),
                             value: Box::new(Expr::Lit(Lit::Num(Number {
                                 span: DUMMY_SP,
-                                value: 0.0,
+                                value: linecol.col_display as f64,
                                 raw: None,
                             }))),
                         }))),
                     ],
                 });
-                let h_decl = self.make_h_decl(meta_obj);
+
+                let h_decl = Stmt::Decl(Decl::Var(Box::new(VarDecl {
+                    span: DUMMY_SP,
+                    kind: VarDeclKind::Const,
+                    declare: false,
+                    decls: vec![VarDeclarator {
+                        span: DUMMY_SP,
+                        name: Pat::Ident(quote_ident!("h").into()),
+                        init: Some(Box::new(Expr::Call(CallExpr {
+                            span: DUMMY_SP,
+                            callee: quote_ident!("useJitterScope").as_callee(),
+                            args: vec![meta_obj.as_arg()],
+                            type_args: None,
+                            ctxt: SyntaxContext::empty(),
+                        }))),
+                        definite: false,
+                    }],
+                    ctxt: SyntaxContext::empty(),
+                })));
                 body.stmts.insert(0, h_decl);
             }
             fn_expr.visit_mut_children_with(self);
@@ -211,7 +220,74 @@ impl VisitMut for JitterTransform {
                             let prev_file_path = self.file_path.clone();
                             self.current_component = Some(comp_ident.clone());
                             self.file_path = format!("{}{}.tsx", "", comp_ident.sym);
-                            let h_decl_stmt = self.make_simple_h_decl(&comp_ident);
+                            
+                            let linecol = self.line_col(arrow.span);
+                            let hash = self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64);
+                            let meta_obj = Expr::Object(ObjectLit {
+                                span: DUMMY_SP,
+                                props: vec![
+                                    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                        key: PropName::Ident(quote_ident!("name").into()),
+                                        value: Box::new(Expr::Lit(Lit::Str(Str {
+                                            span: DUMMY_SP,
+                                            value: comp_ident.sym.clone(),
+                                            raw: None,
+                                        }))),
+                                    }))),
+                                    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                        key: PropName::Ident(quote_ident!("id").into()),
+                                        value: Box::new(Expr::Lit(Lit::Str(Str {
+                                            span: DUMMY_SP,
+                                            value: hash.into(),
+                                            raw: None,
+                                        }))),
+                                    }))),
+                                    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                        key: PropName::Ident(quote_ident!("file").into()),
+                                        value: Box::new(Expr::Lit(Lit::Str(Str {
+                                            span: DUMMY_SP,
+                                            value: self.file_path.clone().into(),
+                                            raw: None,
+                                        }))),
+                                    }))),
+                                    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                        key: PropName::Ident(quote_ident!("line").into()),
+                                        value: Box::new(Expr::Lit(Lit::Num(Number {
+                                            span: DUMMY_SP,
+                                            value: linecol.line as f64,
+                                            raw: None,
+                                        }))),
+                                    }))),
+                                    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                        key: PropName::Ident(quote_ident!("offset").into()),
+                                        value: Box::new(Expr::Lit(Lit::Num(Number {
+                                            span: DUMMY_SP,
+                                            value: linecol.col_display as f64,
+                                            raw: None,
+                                        }))),
+                                    }))),
+                                ],
+                            });
+
+                            let h_decl_stmt = Stmt::Decl(Decl::Var(Box::new(VarDecl {
+                                span: DUMMY_SP,
+                                kind: VarDeclKind::Const,
+                                declare: false,
+                                decls: vec![VarDeclarator {
+                                    span: DUMMY_SP,
+                                    name: Pat::Ident(quote_ident!("h").into()),
+                                    init: Some(Box::new(Expr::Call(CallExpr {
+                                        span: DUMMY_SP,
+                                        callee: quote_ident!("useJitterScope").as_callee(),
+                                        args: vec![meta_obj.as_arg()],
+                                        type_args: None,
+                                        ctxt: SyntaxContext::empty(),
+                                    }))),
+                                    definite: false,
+                                }],
+                                ctxt: SyntaxContext::empty(),
+                            })));
+                            
                             arrow.body = Box::new(match &mut *arrow.body {
                                 BlockStmtOrExpr::BlockStmt(block) => {
                                     block.visit_mut_with(self);
@@ -220,63 +296,13 @@ impl VisitMut for JitterTransform {
                                     BlockStmtOrExpr::BlockStmt(inner_block)
                                 }
                                 BlockStmtOrExpr::Expr(expr) => {
-                                    let meta_obj = Expr::Object(ObjectLit {
-                                        span: DUMMY_SP,
-                                        props: vec![
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("file").into()),
-                                                value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None }))),
-                                            }))),
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("hook").into()),
-                                                value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: "useFieldValues".into(), raw: None }))),
-                                            }))),
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("line").into()),
-                                                value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 1.0, raw: None }))),
-                                            }))),
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("offset").into()),
-                                                value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 50.0, raw: None }))),
-                                            }))),
-                                        ],
-                                    });
                                     BlockStmtOrExpr::BlockStmt(BlockStmt {
                                         span: expr.span(),
                                         stmts: vec![
                                             h_decl_stmt,
                                             Stmt::Return(ReturnStmt {
                                                 span: expr.span(),
-                                                arg: Some(Box::new(Expr::Paren(ParenExpr {
-                                                    span: expr.span(),
-                                                    expr: Box::new(Expr::Seq(SeqExpr {
-                                                        span: expr.span(),
-                                                        exprs: vec![
-                                                            Box::new(Expr::Call(CallExpr {
-                                                                span: expr.span(),
-                                                                callee: MemberExpr {
-                                                                    span: DUMMY_SP,
-                                                                    obj: Box::new(Expr::Ident(quote_ident!("h").into())),
-                                                                    prop: MemberProp::Ident(quote_ident!("s").into())
-                                                                }.as_callee(),
-                                                                args: vec![],
-                                                                type_args: None,
-                                                                ctxt: SyntaxContext::empty(),
-                                                            })),
-                                                            Box::new(Expr::Call(CallExpr {
-                                                                span: expr.span(),
-                                                                callee: MemberExpr {
-                                                                    span: DUMMY_SP,
-                                                                    obj: Box::new(Expr::Ident(quote_ident!("h").into())),
-                                                                    prop: MemberProp::Ident(quote_ident!("e").into())
-                                                                }.as_callee(),
-                                                                args: vec![expr.clone().as_arg(), meta_obj.as_arg()],
-                                                                type_args: None,
-                                                                ctxt: SyntaxContext::empty(),
-                                                            }))
-                                                        ]
-                                                    }))
-                                                }))),
+                                                arg: Some(expr.clone()),
                                             }),
                                         ],
                                         ctxt: SyntaxContext::empty(),
@@ -305,12 +331,16 @@ impl VisitMut for JitterTransform {
                     if let Expr::Ident(id) = &**callee_expr {
                         if self.should_wrap_hook(id) {
                             let linecol = self.line_col(call.span);
-                            let meta_obj = Expr::Object(ObjectLit {
+                            let hook_meta = Expr::Object(ObjectLit {
                                 span: DUMMY_SP,
                                 props: vec![
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("file").into()),
-                                        value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None }))),
+                                        key: PropName::Ident(quote_ident!("id").into()),
+                                        value: Box::new(Expr::Lit(Lit::Str(Str {
+                                            span: DUMMY_SP,
+                                            value: self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64).into(),
+                                            raw: None,
+                                        }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                                         key: PropName::Ident(quote_ident!("hook").into()),
@@ -320,7 +350,7 @@ impl VisitMut for JitterTransform {
                                         key: PropName::Ident(quote_ident!("line").into()),
                                         value: Box::new(Expr::Lit(Lit::Num(Number {
                                             span: DUMMY_SP,
-                                            value: (linecol.line.saturating_sub(if let Some(comp) = &self.current_component { if comp.sym.starts_with("use") { 0 } else { 2 } } else { 2 })) as f64,
+                                            value: linecol.line as f64,
                                             raw: None,
                                         }))),
                                     }))),
@@ -328,11 +358,11 @@ impl VisitMut for JitterTransform {
                                         key: PropName::Ident(quote_ident!("offset").into()),
                                         value: Box::new(Expr::Lit(Lit::Num(Number {
                                             span: DUMMY_SP,
-                                            value: (linecol.col_display + 2 + if let Some(comp) = &self.current_component { if comp.sym.starts_with("use") { 11 } else { 0 } } else { 0 }) as f64,
+                                            value: linecol.col_display as f64,
                                             raw: None,
                                         }))),
                                     }))),
-                                ],
+                                ]
                             });
                             let h_ident = quote_ident!("h");
                             let seq_expr = Expr::Seq(SeqExpr {
@@ -341,14 +371,18 @@ impl VisitMut for JitterTransform {
                                     Box::new(Expr::Call(CallExpr {
                                         span: call.span,
                                         callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.clone().into())), prop: MemberProp::Ident(quote_ident!("s").into()) }.as_callee(),
-                                        args: vec![],
+                                        args: vec![Expr::Lit(Lit::Str(Str {
+                                            span: DUMMY_SP,
+                                            value: self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64).into(),
+                                            raw: None,
+                                        })).as_arg()],
                                         type_args: None,
                                         ctxt: SyntaxContext::empty(),
                                     })),
                                     Box::new(Expr::Call(CallExpr {
                                         span: call.span,
                                         callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.into())), prop: MemberProp::Ident(quote_ident!("e").into()) }.as_callee(),
-                                        args: vec![expr.clone().as_arg(), meta_obj.as_arg()],
+                                        args: vec![expr.clone().as_arg(), hook_meta.as_arg()],
                                         type_args: None,
                                         ctxt: SyntaxContext::empty(),
                                     })),

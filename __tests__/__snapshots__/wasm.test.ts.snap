@@ -6,27 +6,28 @@ import { useJitterScope } from "react-jitter";
 export default function UserForm() {
     const h = useJitterScope({
         name: "UserForm",
+        id: "b492276b",
         file: "$DIR/1_default.tsx",
-        line: 4,
+        line: 3,
         offset: 0
     });
-    const [count, setCount] = (h.s(), h.e(useState(0), {
-        file: "$DIR/1_default.tsx",
+    const [count, setCount] = (h.s("2aeb03d6"), h.e(useState(0), {
+        id: "2aeb03d6",
         hook: "useState",
-        line: 2,
-        offset: 30
-    }));
-    const nameFieldValues = (h.s(), h.e(useFieldValues("name"), {
-        file: "$DIR/1_default.tsx",
-        hook: "useFieldValues",
-        line: 3,
+        line: 4,
         offset: 28
     }));
-    const addressFieldValues = (h.s(), h.e(useFieldValues("address"), {
-        file: "$DIR/1_default.tsx",
+    const nameFieldValues = (h.s("0eef1433"), h.e(useFieldValues("name"), {
+        id: "0eef1433",
         hook: "useFieldValues",
-        line: 4,
-        offset: 31
+        line: 5,
+        offset: 26
+    }));
+    const addressFieldValues = (h.s("9a686f37"), h.e(useFieldValues("address"), {
+        id: "9a686f37",
+        hook: "useFieldValues",
+        line: 6,
+        offset: 29
     }));
     return /*#__PURE__*/ React.createElement("div", null);
 }"
@@ -35,13 +36,14 @@ export default function UserForm() {
 exports[`fixture: 2_arrow_function.tsx 1`] = `
 "import { useJitterScope } from "react-jitter";
 export const useAddressField = ()=>{
-    const h = useJitterScope("useAddressField");
-    return h.s(), h.e(useFieldValues("address"), {
+    const h = useJitterScope({
+        name: "useAddressField",
+        id: "27dbacf3",
         file: "useAddressField.tsx",
-        hook: "useFieldValues",
         line: 1,
-        offset: 50
+        offset: 31
     });
+    return useFieldValues("address");
 };"
 `;
 
@@ -50,8 +52,9 @@ exports[`fixture: 3_anonymous_function.tsx 1`] = `
 export default function() {
     const h = useJitterScope({
         name: "(anonymous)",
+        id: "95297035",
         file: "$DIR/3_anonymous_function.tsx",
-        line: 2,
+        line: 1,
         offset: 0
     });
     const fieldValues = useFieldValues("name");
