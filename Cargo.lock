@@ -1735,9 +1735,11 @@ dependencies = [
 name = "swc_plugin_react_jitter"
 version = "0.0.0"
 dependencies = [
+ "hex",
  "react_jitter",
  "serde",
  "serde_json",
+ "sha2",
  "swc_common",
  "swc_core",
  "swc_ecma_ast",
