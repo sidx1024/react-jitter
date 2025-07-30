@@ -3,16 +3,18 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{VisitMut, VisitMutWith};
 use std::collections::HashSet;
 use swc_core::common::{
-    sync::Lrc,
-    Span, DUMMY_SP, Spanned, SourceMap, Loc, SyntaxContext,
+    Span, DUMMY_SP, Spanned, Loc, SyntaxContext,
 };
 use swc_ecma_utils::{quote_ident, ExprFactory};
 use serde_json;
 use swc_core::ecma::ast::Program;
 use swc_core::plugin::{
     plugin_transform,
-    proxies::{TransformPluginProgramMetadata, TransformPluginMetadataContextKind},
+    proxies::TransformPluginProgramMetadata,
+    metadata::TransformPluginMetadataContextKind,
+    proxies::PluginSourceMapProxy,
 };
+use swc_core::common::errors::SourceMapper;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
@@ -48,15 +50,16 @@ impl Default for Options {
     }
 }
 
+
 struct JitterTransform {
-    cm: Lrc<SourceMap>,
+    cm: PluginSourceMapProxy,
     current_component: Option<Ident>,
     file_path: String,
     ignored_hooks: HashSet<String>,
 }
 
 impl JitterTransform {
-    fn new(cm: Lrc<SourceMap>, file_path: String, ignored_hooks: Vec<String>) -> Self {
+    fn new(cm: PluginSourceMapProxy, file_path: String, ignored_hooks: Vec<String>) -> Self {
         Self { cm, current_component: None, file_path, ignored_hooks: ignored_hooks.into_iter().collect() }
     }
 
@@ -70,16 +73,19 @@ impl JitterTransform {
     }
 
     fn make_simple_h_decl(&self, name: &Ident) -> Stmt {
+        self.make_h_decl(Expr::Lit(Lit::Str(Str {
+            span: DUMMY_SP,
+            value: name.sym.clone(),
+            raw: None,
+        })))
+    }
+
+    fn make_h_decl(&self, arg: Expr) -> Stmt {
         let h_ident = quote_ident!("h");
         let call_expr = Expr::Call(CallExpr {
             span: DUMMY_SP,
             callee: quote_ident!("useJitterScope").as_callee(),
-            args: vec![Expr::Lit(Lit::Str(Str {
-                span: DUMMY_SP,
-                value: name.sym.clone(),
-                raw: None,
-            }))
-            .as_arg()],
+            args: vec![arg.as_arg()],
             type_args: None,
             ctxt: SyntaxContext::empty(),
         });
@@ -140,8 +146,48 @@ impl VisitMut for JitterTransform {
                 self.current_component = Some(ident.clone());
             }
             if let Some(body) = &mut fn_expr.function.body {
-                let _line_num = line_num_global + 1;
-                let h_decl = self.make_simple_h_decl(&self.current_component.as_ref().unwrap());
+                let meta_obj = Expr::Object(ObjectLit {
+                    span: DUMMY_SP,
+                    props: vec![
+                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(quote_ident!("name").into()),
+                            value: Box::new(Expr::Lit(Lit::Str(Str {
+                                span: DUMMY_SP,
+                                value: self
+                                    .current_component
+                                    .as_ref()
+                                    .map(|i| i.sym.clone())
+                                    .unwrap_or_else(|| "(anonymous)".into()),
+                                raw: None,
+                            }))),
+                        }))),
+                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(quote_ident!("file").into()),
+                            value: Box::new(Expr::Lit(Lit::Str(Str {
+                                span: DUMMY_SP,
+                                value: self.file_path.clone().into(),
+                                raw: None,
+                            }))),
+                        }))),
+                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(quote_ident!("line").into()),
+                            value: Box::new(Expr::Lit(Lit::Num(Number {
+                                span: DUMMY_SP,
+                                value: (line_num_global + 1) as f64,
+                                raw: None,
+                            }))),
+                        }))),
+                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(quote_ident!("offset").into()),
+                            value: Box::new(Expr::Lit(Lit::Num(Number {
+                                span: DUMMY_SP,
+                                value: 0.0,
+                                raw: None,
+                            }))),
+                        }))),
+                    ],
+                });
+                let h_decl = self.make_h_decl(meta_obj);
                 body.stmts.insert(0, h_decl);
             }
             fn_expr.visit_mut_children_with(self);
@@ -317,7 +363,11 @@ impl VisitMut for JitterTransform {
     }
 }
 
-pub fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignored_hooks: Vec<String>) -> impl VisitMut {
+pub fn jitter_pass(
+    cm: PluginSourceMapProxy,
+    filename: String,
+    ignored_hooks: Vec<String>,
+) -> impl VisitMut {
     JitterTransform::new(cm, filename, ignored_hooks)
 }
 // Plugin entrypoint for SWC
@@ -339,13 +389,40 @@ pub fn process_transform(
         return program;
     }
 
-    // Determine filename
+    // Determine filename and normalize path
     let filename = metadata
         .get_context(&TransformPluginMetadataContextKind::Filename)
         .unwrap_or_else(|| "unknown.js".to_string());
 
-    // Convert SourceMap
-    let cm: Lrc<SourceMap> = Lrc::from(metadata.source_map);
+    let cwd = metadata
+        .get_context(&TransformPluginMetadataContextKind::Cwd)
+        .or_else(|| std::env::current_dir().ok().map(|p| p.to_string_lossy().to_string()));
+
+    let filename = if let Some(cwd) = cwd {
+        let abs = {
+            let p = std::path::Path::new(&filename);
+            if p.is_absolute() {
+                p.to_path_buf()
+            } else {
+                std::path::Path::new(&cwd).join(p)
+            }
+        };
+        if let Ok(stripped) = abs.strip_prefix(&cwd) {
+            let stripped = stripped.to_string_lossy();
+            let stripped = stripped
+                .trim_start_matches('/')
+                .strip_prefix("transform/")
+                .unwrap_or(&stripped);
+            format!("$DIR/{}", stripped)
+        } else {
+            filename.clone()
+        }
+    } else {
+        filename.clone()
+    };
+
+    // Clone SourceMap proxy
+    let cm: PluginSourceMapProxy = metadata.source_map.clone();
 
     // Apply jitter_pass visitor
     program.visit_mut_with(&mut jitter_pass(
