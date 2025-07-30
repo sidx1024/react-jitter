@@ -1,14 +1,17 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 use serde::Deserialize;
+use swc_core::common::{sync::Lrc, SyntaxContext};
+use swc_ecma_ast::Program;
+#[cfg(target_arch = "wasm32")]
 use swc_core::{
-    common::{sync::Lrc, FileName, SourceMapper},
     ecma::ast::Program,
     plugin::{
         plugin_transform,
-        proxies::{TransformPluginMetadataContext, TransformPluginProgramMetadata},
+        proxies::TransformPluginProgramMetadata,
+        metadata::TransformPluginMetadataContextKind,
     },
 };
-use swc_ecma_visit::{as_folder, fold_pass, Fold, FoldWith};
+use swc_ecma_visit::{Fold, FoldWith};
 use std::{collections::HashSet};
 use swc_common::{SourceMap, Span, DUMMY_SP, Spanned};
 use swc_ecma_utils::{quote_ident, ExprFactory};
@@ -47,10 +50,6 @@ use swc_ecma_ast::{
     ObjectLit,
     Lit,
     Number,
-    JSXOpeningElement,
-    JSXAttrOrSpread,
-    JSXAttr,
-    JSXAttrName,
 };
 
 #[derive(Clone, Debug, Deserialize)]
@@ -90,7 +89,7 @@ impl Default for Options {
 }
 
 
-struct JitterTransform {
+pub struct JitterTransform {
     cm: Lrc<SourceMap>,
     // we store the name of the component we are currently visiting
     current_component: Option<Ident>,
@@ -139,6 +138,7 @@ impl JitterTransform {
                 init: Some(Box::new(call_expr)),
                 definite: false,
             }],
+            ctxt: SyntaxContext::empty(),
         })))
     }
 }
@@ -200,19 +200,19 @@ impl Fold for JitterTransform {
                     span: DUMMY_SP,
                     props: vec![
                         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(quote_ident!("name").into()),
+                            key: PropName::Ident(quote_ident!("name")),
                             value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.current_component.clone().map(|i| i.sym).unwrap_or_else(|| "(anonymous)".into()), raw: None }))),
                         }))),
                         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(quote_ident!("file").into()),
+                            key: PropName::Ident(quote_ident!("file")),
                             value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None }))),
                         }))),
                         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(quote_ident!("line").into()),
+                            key: PropName::Ident(quote_ident!("line")),
                             value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: line_num as f64, raw: None }))),
                         }))),
                         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(quote_ident!("offset").into()),
+                            key: PropName::Ident(quote_ident!("offset")),
                             value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 0.0, raw: None }))),
                         }))),
                     ],
@@ -234,6 +234,7 @@ impl Fold for JitterTransform {
                         init: Some(Box::new(call_expr)),
                         definite: false,
                     }],
+                    ctxt: SyntaxContext::empty(),
                 })));
                 body.stmts.insert(0, decl);
             }
@@ -289,19 +290,19 @@ impl Fold for JitterTransform {
                                         span: DUMMY_SP,
                                         props: vec![
                                             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("file").into()),
+                                                key: PropName::Ident(quote_ident!("file")),
                                                 value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None }))),
                                             }))),
                                             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("hook").into()),
+                                                key: PropName::Ident(quote_ident!("hook")),
                                                 value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: "useFieldValues".into(), raw: None }))),
                                             }))),
                                             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("line").into()),
+                                                key: PropName::Ident(quote_ident!("line")),
                                                 value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 1.0, raw: None }))),
                                             }))),
                                             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("offset").into()),
+                                                key: PropName::Ident(quote_ident!("offset")),
                                                 value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 50.0, raw: None }))),
                                             }))),
                                         ],
@@ -323,7 +324,7 @@ impl Fold for JitterTransform {
                                                                 callee: MemberExpr {
                                                                     span: DUMMY_SP,
                                                                     obj: Box::new(Expr::Ident(quote_ident!("h").into())),
-                                                                    prop: MemberProp::Ident(quote_ident!("s").into())
+                                                                    prop: MemberProp::Ident(quote_ident!("s"))
                                                                 }.as_callee(),
                                                                 args: vec![],
                                                                 type_args: None,
@@ -334,7 +335,7 @@ impl Fold for JitterTransform {
                                                                 callee: MemberExpr {
                                                                     span: DUMMY_SP,
                                                                     obj: Box::new(Expr::Ident(quote_ident!("h").into())),
-                                                                    prop: MemberProp::Ident(quote_ident!("e").into())
+                                                                    prop: MemberProp::Ident(quote_ident!("e"))
                                                                 }.as_callee(),
                                                                 args: vec![(*expr).clone().as_arg(), meta_obj.as_arg()],
                                                                 type_args: None,
@@ -345,6 +346,7 @@ impl Fold for JitterTransform {
                                                 }))),
                                             }),
                                         ],
+                                        ctxt: SyntaxContext::empty(),
                                     }
                                 }
                             };
@@ -352,7 +354,6 @@ impl Fold for JitterTransform {
                             // Update arrow function parameters
                             arrow.params = vec![]; // Empty params list for () => ...
                             arrow.body = Box::new(BlockStmtOrExpr::BlockStmt(new_block));
-                            arrow.span = arrow.span;
 
                             // Restore previous context after transformation
                             self.current_component = prev_component;
@@ -385,15 +386,15 @@ impl Fold for JitterTransform {
                                 span: DUMMY_SP,
                                 props: vec![
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("file").into()),
+                                        key: PropName::Ident(quote_ident!("file")),
                                         value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("hook").into()),
+                                        key: PropName::Ident(quote_ident!("hook")),
                                         value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: id.sym.clone(), raw: None }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("line").into()),
+                                        key: PropName::Ident(quote_ident!("line")),
                                         value: Box::new(Expr::Lit(Lit::Num(Number {
                                             span: DUMMY_SP,
                                             value: (linecol.line
@@ -406,7 +407,7 @@ impl Fold for JitterTransform {
                                         }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("offset").into()),
+                                        key: PropName::Ident(quote_ident!("offset")),
                                         value: Box::new(Expr::Lit(Lit::Num(Number {
                                             span: DUMMY_SP,
                                             value: (linecol.col_display + 2 + if let Some(comp) = &self.current_component {
@@ -425,14 +426,14 @@ impl Fold for JitterTransform {
                                 exprs: vec![
                                     Box::new(Expr::Call(CallExpr {
                                         span: call.span,
-                                        callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.clone().into())), prop: MemberProp::Ident(quote_ident!("s").into()) }.as_callee(),
+                                        callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.clone().into())), prop: MemberProp::Ident(quote_ident!("s")) }.as_callee(),
                                         args: vec![],
                                         type_args: None,
                                         ctxt: Default::default(),
                                     })),
                                     Box::new(Expr::Call(CallExpr {
                                         span: call.span,
-                                        callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.into())), prop: MemberProp::Ident(quote_ident!("e").into()) }.as_callee(),
+                                        callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.into())), prop: MemberProp::Ident(quote_ident!("e")) }.as_callee(),
                                         args: vec![expr.clone().as_arg(), meta_obj.as_arg()],
                                         type_args: None,
                                         ctxt: Default::default(),
@@ -451,7 +452,13 @@ impl Fold for JitterTransform {
     }
 }
 
-fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignored_hooks: Vec<String>) -> impl Fold {
+impl swc_ecma_ast::Pass for JitterTransform {
+    fn process(&mut self, program: &mut Program) {
+        *program = program.clone().fold_with(self);
+    }
+}
+
+fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignored_hooks: Vec<String>) -> JitterTransform {
     use swc_common::FileName;
     // Ensure the SourceMap knows about the file so that lookups succeed.
     let file_content = std::fs::read_to_string(&filename).unwrap_or_default();
@@ -459,7 +466,7 @@ fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignored_hooks: Vec<String>)
     // For test files, use $DIR prefix
     let filename = if filename.contains("tests/fixture") {
         let relative_path = filename.split("transform/").nth(1).unwrap_or(&filename);
-        format!("$DIR/{}", relative_path)
+        format!("$DIR/{relative_path}")
     } else {
         filename
     };
@@ -474,7 +481,7 @@ pub fn react_jitter(
     cm: Lrc<SourceMap>,
     config: Config,
     filename: String,
-) -> impl Fold {
+) -> JitterTransform {
 
     // Determine ignored hooks list from config (fixtures may supply built-in hooks).
     let mut ignored_hooks = match &config {
@@ -486,13 +493,12 @@ pub fn react_jitter(
         ignored_hooks.push("useJitterScope".into());
     }
 
-    let jitter = jitter_pass(cm.clone(), filename, ignored_hooks);
-    create_pass(jitter)
+    jitter_pass(cm.clone(), filename, ignored_hooks)
 }
 
 
 
-struct Pass<A, B> {
+pub struct Pass<A, B> {
     first: A,
     second: B,
 }
@@ -503,23 +509,23 @@ impl<A, B> Pass<A, B> {
     }
 }
 
-impl<A, B> Fold for Pass<A, B>
+impl<A, B> swc_ecma_ast::Pass for Pass<A, B>
 where
-    A: Fold,
-    B: Fold,
+    A: swc_ecma_ast::Pass,
+    B: swc_ecma_ast::Pass,
 {
-    fn fold_module(&mut self, m: swc_ecma_ast::Module) -> swc_ecma_ast::Module {
-        let m = m.fold_with(&mut self.first);
-        m.fold_with(&mut self.second)
+    fn process(&mut self, program: &mut swc_ecma_ast::Program) {
+        self.first.process(program);
+        self.second.process(program);
     }
 }
 
 
 
-fn create_pass<A, B>(first: A, second: B) -> Pass<A, B>
+pub fn create_pass<A, B>(first: A, second: B) -> Pass<A, B>
 where
-    A: Fold,
-    B: Fold,
+    A: swc_ecma_ast::Pass,
+    B: swc_ecma_ast::Pass,
 {
     Pass::new(first, second)
 }
@@ -528,6 +534,7 @@ where
 // Combine utility /////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[cfg(target_arch = "wasm32")]
 #[plugin_transform]
 pub fn process_transform(program: Program, metadata: TransformPluginProgramMetadata) -> Program {
     let config: Config = serde_json::from_str(

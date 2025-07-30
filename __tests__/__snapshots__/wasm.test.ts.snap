@@ -1,0 +1,67 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fixture: 1_default.tsx 1`] = `
+"import { useState } from "react";
+import { useJitterScope } from "react-jitter";
+export default function UserForm() {
+    const h = useJitterScope({
+        name: "UserForm",
+        file: "$DIR/1_default.tsx",
+        line: 4,
+        offset: 0
+    });
+    const [count, setCount] = (h.s(), h.e(useState(0), {
+        file: "$DIR/1_default.tsx",
+        hook: "useState",
+        line: 2,
+        offset: 30
+    }));
+    const nameFieldValues = (h.s(), h.e(useFieldValues("name"), {
+        file: "$DIR/1_default.tsx",
+        hook: "useFieldValues",
+        line: 3,
+        offset: 28
+    }));
+    const addressFieldValues = (h.s(), h.e(useFieldValues("address"), {
+        file: "$DIR/1_default.tsx",
+        hook: "useFieldValues",
+        line: 4,
+        offset: 31
+    }));
+    return /*#__PURE__*/ React.createElement("div", null);
+}"
+`;
+
+exports[`fixture: 2_arrow_function.tsx 1`] = `
+"import { useJitterScope } from "react-jitter";
+export const useAddressField = ()=>{
+    const h = useJitterScope("useAddressField");
+    return h.s(), h.e(useFieldValues("address"), {
+        file: "useAddressField.tsx",
+        hook: "useFieldValues",
+        line: 1,
+        offset: 50
+    });
+};"
+`;
+
+exports[`fixture: 3_anonymous_function.tsx 1`] = `
+"import { useJitterScope } from "react-jitter";
+export default function() {
+    const h = useJitterScope({
+        name: "(anonymous)",
+        file: "$DIR/3_anonymous_function.tsx",
+        line: 2,
+        offset: 0
+    });
+    const fieldValues = useFieldValues("name");
+    return /*#__PURE__*/ React.createElement("div", null);
+}"
+`;
+
+exports[`fixture: 4_non_react_function.tsx 1`] = `
+"import { useJitterScope } from "react-jitter";
+export function notAReactComponent() {
+    return 5;
+}"
+`;
