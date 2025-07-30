@@ -1,12 +1,32 @@
 {
-  "name": "react-jitter-root",
-  "private": true,
-  "type": "module",
-  "main": "./app/runtime.js",
-  "exports": "./app/runtime.js",
+  "name": "react-jitter",
+  "version": "0.0.1",
+  "main": "swc_plugin_react_jitter.wasm",
+  "scripts": {
+    "prepack": "npm run build",
+    "build": "cargo build --release -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm .",
+    "build:debug": "cargo build -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/debug/swc_plugin_react_jitter.wasm .",
+    "test": "npm run build:debug && vitest run --testTimeout=0"
+  },
+  "homepage": "https://swc.rs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sidx1024/react-jitter.git",
+    "directory": "packages/react-jitter"
+  },
+  "bugs": {
+    "url": "https://github.com/sidx1024/react-jitter/issues"
+  },
+  "author": "sidx1024",
+  "keywords": [],
+  "license": "MIT",
+  "preferUnplugged": true,
   "dependencies": {
-    "fast-deep-equal": "^3.1.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@swc/counter": "^0.1.3"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.12.0",
+    "@types/node": "^22.13.9",
+    "vitest": "^3.0.7"
   }
 }
