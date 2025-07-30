@@ -1,0 +1,16 @@
+{
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true
+  },
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "transform/tests/fixture/**/input.js": "plaintext",
+    "transform/tests/fixture/**/output.js": "plaintext"
+  },
+  "[plaintext]": {
+    "editor.formatOnSave": false
+  }
+}
