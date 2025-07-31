@@ -2,7 +2,7 @@
 
 exports[`fixture: 1_default.tsx 1`] = `
 "import { useState } from "react";
-import { useJitterScope } from "react-jitter";
+import { useJitterScope } from "react-jitter/runtime";
 export default function UserForm() {
     const h = useJitterScope({
         name: "UserForm",
@@ -34,7 +34,7 @@ export default function UserForm() {
 `;
 
 exports[`fixture: 2_arrow_function.tsx 1`] = `
-"import { useJitterScope } from "react-jitter";
+"import { useJitterScope } from "react-jitter/runtime";
 export const useAddressField = ()=>{
     const h = useJitterScope({
         name: "useAddressField",
@@ -53,7 +53,7 @@ export const useAddressField = ()=>{
 `;
 
 exports[`fixture: 3_anonymous_function.tsx 1`] = `
-"import { useJitterScope } from "react-jitter";
+"import { useJitterScope } from "react-jitter/runtime";
 export default function() {
     const h = useJitterScope({
         name: "(anonymous)",
@@ -73,7 +73,7 @@ export default function() {
 `;
 
 exports[`fixture: 4_non_react_function.tsx 1`] = `
-"import { useJitterScope } from "react-jitter";
+"import { useJitterScope } from "react-jitter/runtime";
 export function notAReactComponent() {
     return 5;
 }"

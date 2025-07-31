@@ -90,7 +90,7 @@ impl VisitMut for JitterTransform {
                 src, specifiers, ..
             })) = item
             {
-                if src.value == *"react-jitter" {
+                if src.value == *"react-jitter/runtime" {
                     if specifiers.iter().any(|s| match s {
                         ImportSpecifier::Named(n) => n.local.sym == *"useJitterScope",
                         _ => false,
@@ -111,7 +111,7 @@ impl VisitMut for JitterTransform {
                 })],
                 src: Box::new(Str {
                     span: DUMMY_SP,
-                    value: "react-jitter".into(),
+                    value: "react-jitter/runtime".into(),
                     raw: None,
                 }),
                 type_only: false,
