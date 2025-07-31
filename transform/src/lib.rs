@@ -1,20 +1,16 @@
 use serde::Deserialize;
-use swc_ecma_ast::*;
-use swc_ecma_visit::{VisitMut, VisitMutWith};
-use std::collections::HashSet;
-use swc_core::common::{
-    Span, DUMMY_SP, Spanned, Loc, SyntaxContext,
-};
-use swc_ecma_utils::{quote_ident, ExprFactory};
 use serde_json;
+use std::collections::HashSet;
+use swc_core::common::errors::SourceMapper;
+use swc_core::common::{Loc, Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::Program;
 use swc_core::plugin::{
-    plugin_transform,
+    metadata::TransformPluginMetadataContextKind, plugin_transform, proxies::PluginSourceMapProxy,
     proxies::TransformPluginProgramMetadata,
-    metadata::TransformPluginMetadataContextKind,
-    proxies::PluginSourceMapProxy,
 };
-use swc_core::common::errors::SourceMapper;
+use swc_ecma_ast::*;
+use swc_ecma_utils::{quote_ident, ExprFactory};
+use swc_ecma_visit::{VisitMut, VisitMutWith};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
@@ -50,7 +46,6 @@ impl Default for Options {
     }
 }
 
-
 struct JitterTransform {
     cm: PluginSourceMapProxy,
     current_component: Option<Ident>,
@@ -60,11 +55,16 @@ struct JitterTransform {
 
 impl JitterTransform {
     fn new(cm: PluginSourceMapProxy, file_path: String, ignored_hooks: Vec<String>) -> Self {
-        Self { cm, current_component: None, file_path, ignored_hooks: ignored_hooks.into_iter().collect() }
+        Self {
+            cm,
+            current_component: None,
+            file_path,
+            ignored_hooks: ignored_hooks.into_iter().collect(),
+        }
     }
 
     fn generate_location_hash(&self, file: &str, line: f64, offset: f64) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let input = format!("{}:{}:{}", file, line, offset);
         let mut hasher = Sha256::new();
         hasher.update(input.as_bytes());
@@ -80,15 +80,16 @@ impl JitterTransform {
         let s = ident.sym.as_ref();
         s.starts_with("use") && !self.ignored_hooks.contains(s)
     }
-
-
 }
 
 impl VisitMut for JitterTransform {
     fn visit_mut_module(&mut self, m: &mut Module) {
         let mut has_import = false;
         for item in m.body.iter() {
-            if let ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl { src, specifiers, .. })) = item {
+            if let ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+                src, specifiers, ..
+            })) = item
+            {
                 if src.value == *"react-jitter" {
                     if specifiers.iter().any(|s| match s {
                         ImportSpecifier::Named(n) => n.local.sym == *"useJitterScope",
@@ -108,12 +109,20 @@ impl VisitMut for JitterTransform {
                     imported: None,
                     is_type_only: false,
                 })],
-                src: Box::new(Str { span: DUMMY_SP, value: "react-jitter".into(), raw: None }),
+                src: Box::new(Str {
+                    span: DUMMY_SP,
+                    value: "react-jitter".into(),
+                    raw: None,
+                }),
                 type_only: false,
                 with: None,
                 phase: Default::default(),
             }));
-            let idx = m.body.iter().position(|item| !matches!(item, ModuleItem::ModuleDecl(ModuleDecl::Import(..)))).unwrap_or(m.body.len());
+            let idx = m
+                .body
+                .iter()
+                .position(|item| !matches!(item, ModuleItem::ModuleDecl(ModuleDecl::Import(..))))
+                .unwrap_or(m.body.len());
             m.body.insert(idx, import);
         }
         m.visit_mut_children_with(self);
@@ -124,10 +133,17 @@ impl VisitMut for JitterTransform {
         if let DefaultDecl::Fn(fn_expr) = &mut n.decl {
             if let Some(ident) = &fn_expr.ident {
                 self.current_component = Some(ident.clone());
+            } else {
+                // Use a placeholder to enable instrumentation for anonymous components
+                self.current_component = Some(quote_ident!("(anonymous)").into());
             }
             if let Some(body) = &mut fn_expr.function.body {
                 let linecol = self.line_col(n.span);
-                let hash = self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64);
+                let hash = self.generate_location_hash(
+                    &self.file_path,
+                    linecol.line as f64,
+                    linecol.col_display as f64,
+                );
 
                 let meta_obj = Expr::Object(ObjectLit {
                     span: DUMMY_SP,
@@ -220,9 +236,13 @@ impl VisitMut for JitterTransform {
                             let prev_file_path = self.file_path.clone();
                             self.current_component = Some(comp_ident.clone());
                             self.file_path = format!("{}{}.tsx", "", comp_ident.sym);
-                            
+
                             let linecol = self.line_col(arrow.span);
-                            let hash = self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64);
+                            let hash = self.generate_location_hash(
+                                &self.file_path,
+                                linecol.line as f64,
+                                linecol.col_display as f64,
+                            );
                             let meta_obj = Expr::Object(ObjectLit {
                                 span: DUMMY_SP,
                                 props: vec![
@@ -287,7 +307,7 @@ impl VisitMut for JitterTransform {
                                 }],
                                 ctxt: SyntaxContext::empty(),
                             })));
-                            
+
                             arrow.body = Box::new(match &mut *arrow.body {
                                 BlockStmtOrExpr::BlockStmt(block) => {
                                     block.visit_mut_with(self);
@@ -296,6 +316,8 @@ impl VisitMut for JitterTransform {
                                     BlockStmtOrExpr::BlockStmt(inner_block)
                                 }
                                 BlockStmtOrExpr::Expr(expr) => {
+                                    expr.visit_mut_with(self);
+
                                     BlockStmtOrExpr::BlockStmt(BlockStmt {
                                         span: expr.span(),
                                         stmts: vec![
@@ -309,6 +331,7 @@ impl VisitMut for JitterTransform {
                                     })
                                 }
                             });
+                            arrow.params = vec![]; // Empty params for () => ...
                             self.current_component = prev_component;
                             self.file_path = prev_file_path;
                         }
@@ -338,13 +361,23 @@ impl VisitMut for JitterTransform {
                                         key: PropName::Ident(quote_ident!("id").into()),
                                         value: Box::new(Expr::Lit(Lit::Str(Str {
                                             span: DUMMY_SP,
-                                            value: self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64).into(),
+                                            value: self
+                                                .generate_location_hash(
+                                                    &self.file_path,
+                                                    linecol.line as f64,
+                                                    linecol.col_display as f64,
+                                                )
+                                                .into(),
                                             raw: None,
                                         }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                                         key: PropName::Ident(quote_ident!("hook").into()),
-                                        value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: id.sym.clone(), raw: None }))),
+                                        value: Box::new(Expr::Lit(Lit::Str(Str {
+                                            span: DUMMY_SP,
+                                            value: id.sym.clone(),
+                                            raw: None,
+                                        }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                                         key: PropName::Ident(quote_ident!("line").into()),
@@ -362,7 +395,7 @@ impl VisitMut for JitterTransform {
                                             raw: None,
                                         }))),
                                     }))),
-                                ]
+                                ],
                             });
                             let h_ident = quote_ident!("h");
                             let seq_expr = Expr::Seq(SeqExpr {
@@ -370,25 +403,45 @@ impl VisitMut for JitterTransform {
                                 exprs: vec![
                                     Box::new(Expr::Call(CallExpr {
                                         span: call.span,
-                                        callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.clone().into())), prop: MemberProp::Ident(quote_ident!("s").into()) }.as_callee(),
+                                        callee: MemberExpr {
+                                            span: DUMMY_SP,
+                                            obj: Box::new(Expr::Ident(h_ident.clone().into())),
+                                            prop: MemberProp::Ident(quote_ident!("s").into()),
+                                        }
+                                        .as_callee(),
                                         args: vec![Expr::Lit(Lit::Str(Str {
                                             span: DUMMY_SP,
-                                            value: self.generate_location_hash(&self.file_path, linecol.line as f64, linecol.col_display as f64).into(),
+                                            value: self
+                                                .generate_location_hash(
+                                                    &self.file_path,
+                                                    linecol.line as f64,
+                                                    linecol.col_display as f64,
+                                                )
+                                                .into(),
                                             raw: None,
-                                        })).as_arg()],
+                                        }))
+                                        .as_arg()],
                                         type_args: None,
                                         ctxt: SyntaxContext::empty(),
                                     })),
                                     Box::new(Expr::Call(CallExpr {
                                         span: call.span,
-                                        callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Ident(h_ident.into())), prop: MemberProp::Ident(quote_ident!("e").into()) }.as_callee(),
+                                        callee: MemberExpr {
+                                            span: DUMMY_SP,
+                                            obj: Box::new(Expr::Ident(h_ident.into())),
+                                            prop: MemberProp::Ident(quote_ident!("e").into()),
+                                        }
+                                        .as_callee(),
                                         args: vec![expr.clone().as_arg(), hook_meta.as_arg()],
                                         type_args: None,
                                         ctxt: SyntaxContext::empty(),
                                     })),
                                 ],
                             });
-                            *expr = Expr::Paren(ParenExpr { span: call.span, expr: Box::new(seq_expr) });
+                            *expr = Expr::Paren(ParenExpr {
+                                span: call.span,
+                                expr: Box::new(seq_expr),
+                            });
                         }
                     }
                 }
@@ -430,7 +483,11 @@ pub fn process_transform(
 
     let cwd = metadata
         .get_context(&TransformPluginMetadataContextKind::Cwd)
-        .or_else(|| std::env::current_dir().ok().map(|p| p.to_string_lossy().to_string()));
+        .or_else(|| {
+            std::env::current_dir()
+                .ok()
+                .map(|p| p.to_string_lossy().to_string())
+        });
 
     let filename = if let Some(cwd) = cwd {
         let abs = {
