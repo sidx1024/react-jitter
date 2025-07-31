@@ -32,7 +32,7 @@ impl Config {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Options {
     #[serde(default = "default_ignored_hooks")]
-    pub ignored_hooks: Vec<String>,
+    pub ignoreHooks: Vec<String>,
     #[serde(default = "default_exclude_patterns")]
     pub exclude: Vec<String>,
 }
@@ -76,7 +76,7 @@ fn default_ignored_hooks() -> Vec<String> {
 impl Default for Options {
     fn default() -> Self {
         Self {
-            ignored_hooks: default_ignored_hooks(),
+            ignoreHooks: default_ignored_hooks(),
             exclude: default_exclude_patterns(),
         }
     }
@@ -86,12 +86,12 @@ struct JitterTransform {
     cm: PluginSourceMapProxy,
     current_component: Option<Ident>,
     file_path: String,
-    ignored_hooks: HashSet<String>,
+    ignoreHooks: HashSet<String>,
     exclude_patterns: Vec<Pattern>,
 }
 
 impl JitterTransform {
-    fn new(cm: PluginSourceMapProxy, file_path: String, ignored_hooks: Vec<String>, exclude_patterns: Vec<String>) -> Self {
+    fn new(cm: PluginSourceMapProxy, file_path: String, ignoreHooks: Vec<String>, exclude_patterns: Vec<String>) -> Self {
         let compiled_patterns = exclude_patterns
             .into_iter()
             .filter_map(|p| Pattern::new(&p).ok())
@@ -101,7 +101,7 @@ impl JitterTransform {
             cm,
             current_component: None,
             file_path,
-            ignored_hooks: ignored_hooks.into_iter().collect(),
+            ignoreHooks: ignoreHooks.into_iter().collect(),
             exclude_patterns: compiled_patterns,
         }
     }
@@ -136,7 +136,7 @@ impl JitterTransform {
 
     fn should_wrap_hook(&self, ident: &Ident) -> bool {
         let s = ident.sym.as_ref();
-        s.starts_with("use") && !self.ignored_hooks.contains(s)
+        s.starts_with("use") && !self.ignoreHooks.contains(s)
     }
 }
 
@@ -514,10 +514,10 @@ impl VisitMut for JitterTransform {
 pub fn jitter_pass(
     cm: PluginSourceMapProxy,
     filename: String,
-    ignored_hooks: Vec<String>,
+    ignoreHooks: Vec<String>,
     exclude_patterns: Vec<String>,
 ) -> impl VisitMut {
-    JitterTransform::new(cm, filename, ignored_hooks, exclude_patterns)
+    JitterTransform::new(cm, filename, ignoreHooks, exclude_patterns)
 }
 // Plugin entrypoint for SWC
 #[plugin_transform]
@@ -582,7 +582,7 @@ pub fn process_transform(
         cm,
         filename,
         match &config {
-            Config::WithOptions(opts) => opts.ignored_hooks.clone(),
+            Config::WithOptions(opts) => opts.ignoreHooks.clone(),
             _ => Vec::new(),
         },
         match &config {

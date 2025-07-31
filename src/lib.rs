@@ -73,7 +73,7 @@ pub struct Options {
     // List of React hooks that should be excluded from instrumentation.
     // Defaults to `["useJitterScope"]`. Additional hooks can be supplied via Options.
     #[serde(default = "default_ignored_hooks")]
-    pub ignored_hooks: Vec<String>,
+    pub ignoreHooks: Vec<String>,
 }
 
 fn default_ignored_hooks() -> Vec<String> {
@@ -83,7 +83,7 @@ fn default_ignored_hooks() -> Vec<String> {
 impl Default for Options {
     fn default() -> Self {
         Self {
-            ignored_hooks: default_ignored_hooks(),
+            ignoreHooks: default_ignored_hooks(),
         }
     }
 }
@@ -94,12 +94,12 @@ pub struct JitterTransform {
     // we store the name of the component we are currently visiting
     current_component: Option<Ident>,
     file_path: String,
-    ignored_hooks: HashSet<String>,
+    ignoreHooks: HashSet<String>,
 }
 
 impl JitterTransform {
-    fn new(cm: Lrc<SourceMap>, file_path: String, ignored_hooks: Vec<String>) -> Self {
-        Self { cm, current_component: None, file_path, ignored_hooks: ignored_hooks.into_iter().collect() }
+    fn new(cm: Lrc<SourceMap>, file_path: String, ignoreHooks: Vec<String>) -> Self {
+        Self { cm, current_component: None, file_path, ignoreHooks: ignoreHooks.into_iter().collect() }
     }
 
     /// Returns source location for a given span.
@@ -110,7 +110,7 @@ impl JitterTransform {
     fn should_wrap_hook(&self, ident: &Ident) -> bool {
         // Wrap only "use*" calls that are not listed in the configured ignored hooks set.
         let s = ident.sym.as_ref();
-        s.starts_with("use") && !self.ignored_hooks.contains(s)
+        s.starts_with("use") && !self.ignoreHooks.contains(s)
     }
 
     // NEW: build `const h = useJitterScope("<Name>")` for hook/utility functions
@@ -411,7 +411,7 @@ impl swc_ecma_ast::Pass for JitterTransform {
     }
 }
 
-fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignored_hooks: Vec<String>) -> JitterTransform {
+fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignoreHooks: Vec<String>) -> JitterTransform {
     use swc_common::FileName;
     // Ensure the SourceMap knows about the file so that lookups succeed.
     let file_content = std::fs::read_to_string(&filename).unwrap_or_default();
@@ -423,7 +423,7 @@ fn jitter_pass(cm: Lrc<SourceMap>, filename: String, ignored_hooks: Vec<String>)
     } else {
         filename
     };
-    JitterTransform::new(cm, filename, ignored_hooks)
+    JitterTransform::new(cm, filename, ignoreHooks)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -437,16 +437,16 @@ pub fn react_jitter(
 ) -> JitterTransform {
 
     // Determine ignored hooks list from config (fixtures may supply built-in hooks).
-    let mut ignored_hooks = match &config {
-        Config::WithOptions(opts) => opts.ignored_hooks.clone(),
+    let mut ignoreHooks = match &config {
+        Config::WithOptions(opts) => opts.ignoreHooks.clone(),
         _ => Vec::new(),
     };
     // Always ignore `useJitterScope` to prevent infinite recursion.
-    if !ignored_hooks.iter().any(|h| h == "useJitterScope") {
-        ignored_hooks.push("useJitterScope".into());
+    if !ignoreHooks.iter().any(|h| h == "useJitterScope") {
+        ignoreHooks.push("useJitterScope".into());
     }
 
-    jitter_pass(cm.clone(), filename, ignored_hooks)
+    jitter_pass(cm.clone(), filename, ignoreHooks)
 }
 
 
