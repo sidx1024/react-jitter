@@ -35,7 +35,32 @@ pub struct Options {
 }
 
 fn default_ignored_hooks() -> Vec<String> {
-    vec!["useJitterScope".into()]
+    vec![
+        // Project-specific hooks
+        "useJitterScope".into(),
+        
+        // Basic React Hooks
+        "useState".into(),
+        "useEffect".into(),
+        // "useContext".into(),
+        // "useReducer".into(),
+        "useCallback".into(),
+        "useMemo".into(),
+        "useRef".into(),
+        "useImperativeHandle".into(),
+        "useLayoutEffect".into(),
+        "useDebugValue".into(),
+        "useId".into(),
+
+        // React Suspense Hooks
+        "useDeferredValue".into(),
+        "useTransition".into(),
+
+        // React Cache/Resource Hooks
+        "useCacheRefresh".into(),
+        "useInsertionEffect".into(),
+        "useSyncExternalStore".into(),
+    ]
 }
 
 impl Default for Options {

@@ -11,12 +11,7 @@ export default function UserForm() {
         line: 3,
         offset: 0
     });
-    const [count, setCount] = (h.s("2aeb03d6"), h.e(useState(0), {
-        id: "2aeb03d6",
-        hook: "useState",
-        line: 4,
-        offset: 28
-    }));
+    const [count, setCount] = useState(0);
     const nameFieldValues = (h.s("0eef1433"), h.e(useFieldValues("name"), {
         id: "0eef1433",
         hook: "useFieldValues",
