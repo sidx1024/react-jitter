@@ -1735,6 +1735,7 @@ dependencies = [
 name = "swc_plugin_react_jitter"
 version = "0.0.0"
 dependencies = [
+ "glob",
  "hex",
  "react_jitter",
  "serde",

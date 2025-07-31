@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde_json;
 use std::collections::HashSet;
+use glob::Pattern;
 use swc_core::common::errors::SourceMapper;
 use swc_core::common::{Loc, Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::Program;
@@ -32,6 +33,15 @@ impl Config {
 pub struct Options {
     #[serde(default = "default_ignored_hooks")]
     pub ignored_hooks: Vec<String>,
+    #[serde(default = "default_exclude_patterns")]
+    pub exclude: Vec<String>,
+}
+
+fn default_exclude_patterns() -> Vec<String> {
+    vec![
+        // Default patterns
+        "**/node_modules/**".into(),  // Matches any node_modules directory at any depth
+    ]
 }
 
 fn default_ignored_hooks() -> Vec<String> {
@@ -67,6 +77,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             ignored_hooks: default_ignored_hooks(),
+            exclude: default_exclude_patterns(),
         }
     }
 }
@@ -76,16 +87,38 @@ struct JitterTransform {
     current_component: Option<Ident>,
     file_path: String,
     ignored_hooks: HashSet<String>,
+    exclude_patterns: Vec<Pattern>,
 }
 
 impl JitterTransform {
-    fn new(cm: PluginSourceMapProxy, file_path: String, ignored_hooks: Vec<String>) -> Self {
+    fn new(cm: PluginSourceMapProxy, file_path: String, ignored_hooks: Vec<String>, exclude_patterns: Vec<String>) -> Self {
+        let compiled_patterns = exclude_patterns
+            .into_iter()
+            .filter_map(|p| Pattern::new(&p).ok())
+            .collect();
+        
         Self {
             cm,
             current_component: None,
             file_path,
             ignored_hooks: ignored_hooks.into_iter().collect(),
+            exclude_patterns: compiled_patterns,
         }
+    }
+
+    fn normalize_path(&self) -> String {
+        // Convert Windows-style paths to Unix-style for consistent matching
+        self.file_path.replace('\\', "/")
+    }
+
+    fn should_exclude_file(&self) -> bool {
+        let normalized_path = self.normalize_path();
+        for pattern in &self.exclude_patterns {
+            if pattern.matches(&normalized_path) {
+                return true;
+            }
+        }
+        false
     }
 
     fn generate_location_hash(&self, file: &str, line: f64, offset: f64) -> String {
@@ -109,6 +142,9 @@ impl JitterTransform {
 
 impl VisitMut for JitterTransform {
     fn visit_mut_module(&mut self, m: &mut Module) {
+        if self.should_exclude_file() {
+            return;
+        }
         let mut has_import = false;
         for item in m.body.iter() {
             if let ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
@@ -479,8 +515,9 @@ pub fn jitter_pass(
     cm: PluginSourceMapProxy,
     filename: String,
     ignored_hooks: Vec<String>,
+    exclude_patterns: Vec<String>,
 ) -> impl VisitMut {
-    JitterTransform::new(cm, filename, ignored_hooks)
+    JitterTransform::new(cm, filename, ignored_hooks, exclude_patterns)
 }
 // Plugin entrypoint for SWC
 #[plugin_transform]
@@ -547,6 +584,10 @@ pub fn process_transform(
         match &config {
             Config::WithOptions(opts) => opts.ignored_hooks.clone(),
             _ => Vec::new(),
+        },
+        match &config {
+            Config::WithOptions(opts) => opts.exclude.clone(),
+            _ => default_exclude_patterns(),
         },
     ));
 
