@@ -285,28 +285,10 @@ impl Fold for JitterTransform {
                                 }
                                 BlockStmtOrExpr::Expr(expr) => {
                                     // For arrow functions that directly return a hook call,
-                                    // we want to wrap the call expression directly
-                                    let meta_obj = Expr::Object(ObjectLit {
-                                        span: DUMMY_SP,
-                                        props: vec![
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("file")),
-                                                value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None }))),
-                                            }))),
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("hook")),
-                                                value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: "useFieldValues".into(), raw: None }))),
-                                            }))),
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("line")),
-                                                value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 1.0, raw: None }))),
-                                            }))),
-                                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                key: PropName::Ident(quote_ident!("offset")),
-                                                value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: 50.0, raw: None }))),
-                                            }))),
-                                        ],
-                                    });
+                                    // use the regular expression folding logic to instrument
+                                    // the call expression and wrap it in a return statement.
+
+                                    let instrumented = expr.clone().fold_with(self);
 
                                     BlockStmt {
                                         span: expr.span(),
@@ -314,36 +296,7 @@ impl Fold for JitterTransform {
                                             h_decl_stmt,
                                             Stmt::Return(ReturnStmt {
                                                 span: expr.span(),
-                                                arg: Some(Box::new(Expr::Paren(ParenExpr {
-                                                    span: expr.span(),
-                                                    expr: Box::new(Expr::Seq(SeqExpr {
-                                                        span: expr.span(),
-                                                        exprs: vec![
-                                                            Box::new(Expr::Call(CallExpr {
-                                                                span: expr.span(),
-                                                                callee: MemberExpr {
-                                                                    span: DUMMY_SP,
-                                                                    obj: Box::new(Expr::Ident(quote_ident!("h").into())),
-                                                                    prop: MemberProp::Ident(quote_ident!("s"))
-                                                                }.as_callee(),
-                                                                args: vec![],
-                                                                type_args: None,
-                                                                ctxt: Default::default(),
-                                                            })),
-                                                            Box::new(Expr::Call(CallExpr {
-                                                                span: expr.span(),
-                                                                callee: MemberExpr {
-                                                                    span: DUMMY_SP,
-                                                                    obj: Box::new(Expr::Ident(quote_ident!("h").into())),
-                                                                    prop: MemberProp::Ident(quote_ident!("e"))
-                                                                }.as_callee(),
-                                                                args: vec![(*expr).clone().as_arg(), meta_obj.as_arg()],
-                                                                type_args: None,
-                                                                ctxt: Default::default(),
-                                                            }))
-                                                        ]
-                                                    }))
-                                                }))),
+                                                arg: Some(Box::new(instrumented)),
                                             }),
                                         ],
                                         ctxt: SyntaxContext::empty(),

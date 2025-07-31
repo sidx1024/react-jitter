@@ -43,7 +43,12 @@ export const useAddressField = ()=>{
         line: 1,
         offset: 31
     });
-    return useFieldValues("address");
+    return h.s("41f1f9ce"), h.e(useFieldValues("address"), {
+        id: "41f1f9ce",
+        hook: "useFieldValues",
+        line: 1,
+        offset: 37
+    });
 };"
 `;
 
@@ -57,7 +62,12 @@ export default function() {
         line: 1,
         offset: 0
     });
-    const fieldValues = useFieldValues("name");
+    const fieldValues = (h.s("9f49aae6"), h.e(useFieldValues("name"), {
+        id: "9f49aae6",
+        hook: "useFieldValues",
+        line: 2,
+        offset: 22
+    }));
     return /*#__PURE__*/ React.createElement("div", null);
 }"
 `;
