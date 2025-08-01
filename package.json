@@ -32,7 +32,8 @@
     "cargo:fix": "cd plugin-swc && cargo clippy --fix --all-targets --all-features --allow-dirty -- -D warnings",
     "release": "npm run build && changeset publish",
     "lint": "biome lint .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "prepare": "husky"
   },
   "publishConfig": {
     "access": "public"
@@ -75,6 +76,14 @@
     "@changesets/cli": "^2.29.5",
     "@swc/core": "^1.12.0",
     "@types/node": "^22.13.9",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "vitest": "^3.0.7"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "biome format --write",
+      "biome lint"
+    ]
   }
 }
