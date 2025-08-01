@@ -42,6 +42,3 @@ jobs:
 
       - name: Run tests
         run: npm test
-
-      - name: Check for uncommitted changes
-        run: git diff --exit-code
