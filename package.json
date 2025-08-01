@@ -17,6 +17,11 @@
   },
   "main": "plugin-swc/swc_plugin_react_jitter.wasm",
   "types": "./index.d.ts",
+  "files": [
+    "index.d.ts",
+    "plugin-swc/swc_plugin_react_jitter.wasm",
+    "runtime/dist"
+  ],
   "scripts": {
     "prepack": "npm run build",
     "build": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --release --target wasm32-wasip1 && cp ./target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm .",
