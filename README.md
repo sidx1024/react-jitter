@@ -55,7 +55,7 @@ const nextConfig = {
     swcPlugins: isDevelopment
       ? [
           [
-            "react-jitter",
+            "react-jitter/plugin-swc",
             {
               // An array of hooks to ignore. For example, `["useSelector"]`.
               ignoreHooks: [],
@@ -92,12 +92,30 @@ import { reactJitter } from "react-jitter/runtime";
 
 if (process.env.NODE_ENV === "development") {
   reactJitter({
+    enabled: true,
     // This function will be called whenever a hook's value changes.
     onHookChange: (change) => {
       console.log("Hook changed:", change);
     },
   });
 }
+```
+
+You can also change `enabled` and `onHookChange` at runtime from your browser's developer console. This is useful for temporarily disabling logging or changing the callback behavior without a full page reload.
+
+```js
+// Disable React Jitter
+window.reactJitter.enabled = false;
+
+// Re-enable React Jitter
+window.reactJitter.enabled = true;
+
+// Change the onHookChange callback
+window.reactJitter.onHookChange = (change) => {
+  if (change.unstable) {
+    console.warn("Unstable hook value:", change);
+  }
+};
 ```
 
 Modern bundlers will tree-shake the `import` and the function call from your production build, so it will have zero performance impact.
