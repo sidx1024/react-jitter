@@ -20,7 +20,12 @@
     }
   },
   "files": {
-    "includes": ["**", "!**/plugin-swc/target", "!**/runtime/dist"]
+    "includes": [
+      "**",
+      "!**/plugin-swc/target",
+      "!**/runtime/dist",
+      "!transform"
+    ]
   },
   "overrides": [
     {
