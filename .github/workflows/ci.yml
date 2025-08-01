@@ -42,3 +42,23 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  changeset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with fetch-depth 0
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - run: npm install
+
+      - name: Run Changeset
+        uses: changesets/action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
