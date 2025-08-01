@@ -12,6 +12,7 @@ const pluginName =
 const pluginPath = path.join(
   path.dirname(url.fileURLToPath(import.meta.url)),
   "..",
+  "plugin-swc",
   pluginName
 );
 

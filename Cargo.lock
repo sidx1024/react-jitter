@@ -1059,21 +1059,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
-name = "react_jitter"
-version = "0.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "swc_common",
- "swc_core",
- "swc_ecma_ast",
- "swc_ecma_parser",
- "swc_ecma_utils",
- "swc_ecma_visit",
- "tracing",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1735,21 +1720,14 @@ dependencies = [
 name = "swc_plugin_react_jitter"
 version = "0.0.0"
 dependencies = [
- "glob",
- "hex",
- "react_jitter",
  "serde",
  "serde_json",
- "sha2",
  "swc_common",
  "swc_core",
  "swc_ecma_ast",
  "swc_ecma_parser",
- "swc_ecma_transforms_base",
- "swc_ecma_transforms_testing",
  "swc_ecma_utils",
  "swc_ecma_visit",
- "testing",
  "tracing",
 ]
 

@@ -1,6 +1,6 @@
 {
   "name": "react-jitter-runtime",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -33,5 +33,8 @@
     "build": "tsup src/index.ts --format cjs,esm --dts --clean --external react --external react-dom",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external react --external react-dom",
     "test": "vitest"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

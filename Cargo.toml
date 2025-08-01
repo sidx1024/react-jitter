@@ -1,9 +1,5 @@
-[workspace]
-members = ["transform"]
-resolver = "2"
-
 [package]
-name = "react_jitter"
+name = "swc_plugin_react_jitter"
 version = "0.0.0"
 edition = "2021"
 publish = false
