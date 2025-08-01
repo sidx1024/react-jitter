@@ -37,7 +37,7 @@ module.exports = __toCommonJS(index_exports);
 var import_react = __toESM(require("react"));
 
 // src/utils/getChanges.ts
-var import_fast_deep_equal = __toESM(require("fast-deep-equal"));
+var import_fast_equals = require("fast-equals");
 function getChanges(prev, next) {
   const changedKeys = [];
   const unstableKeys = [];
@@ -57,7 +57,7 @@ function getChanges(prev, next) {
     }
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      if (!(0, import_fast_deep_equal.default)(prev[i], next[i]) || isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i]) {
+      if (!(0, import_fast_equals.deepEqual)(prev[i], next[i]) || isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i]) {
         const key = String(i);
         changedKeys.push(key);
         if (isObject(prev[i]) || isObject(next[i])) {
@@ -68,7 +68,7 @@ function getChanges(prev, next) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = /* @__PURE__ */ new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      if (!(0, import_fast_deep_equal.default)(prev[key], next[key]) || isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key]) {
+      if (!(0, import_fast_equals.deepEqual)(prev[key], next[key]) || isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key]) {
         changedKeys.push(key);
         if (isObject(prev[key]) || isObject(next[key])) {
           unstableKeys.push(key);
@@ -76,8 +76,8 @@ function getChanges(prev, next) {
       }
     }
   } else {
-    const unstable = isObject(prev) && isObject(next) && !(0, import_fast_deep_equal.default)(prev, next);
-    const changed = !(0, import_fast_deep_equal.default)(prev, next);
+    const unstable = isObject(prev) && isObject(next) && !(0, import_fast_equals.deepEqual)(prev, next);
+    const changed = !(0, import_fast_equals.deepEqual)(prev, next);
     return {
       unstable,
       unstableKeys: [],
@@ -85,7 +85,7 @@ function getChanges(prev, next) {
     };
   }
   const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
-  const unstableRoot = isPlainObject(prev) && isPlainObject(next) && prev !== next && (0, import_fast_deep_equal.default)(prev, next);
+  const unstableRoot = isPlainObject(prev) && isPlainObject(next) && prev !== next && (0, import_fast_equals.deepEqual)(prev, next);
   if (unstableRoot && changedKeys.length === 0) {
     changedKeys.push("");
     unstableKeys.push("");

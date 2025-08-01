@@ -2,7 +2,7 @@
 import React from "react";
 
 // src/utils/getChanges.ts
-import deepEqual from "fast-deep-equal";
+import { deepEqual } from "fast-equals";
 function getChanges(prev, next) {
   const changedKeys = [];
   const unstableKeys = [];

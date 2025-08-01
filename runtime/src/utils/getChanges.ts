@@ -1,4 +1,4 @@
-import deepEqual from 'fast-deep-equal';
+import { deepEqual } from 'fast-equals';
 
 export function getChanges(prev: unknown, next: unknown) {
   const changedKeys = [];
