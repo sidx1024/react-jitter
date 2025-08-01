@@ -1,5 +1,11 @@
 # react-jitter
 
+## 0.2.0
+
+### Minor Changes
+
+- 52b679f: This is a test changeset to verify the workflow.
+
 ## 0.1.0
 
 ### Minor Changes
