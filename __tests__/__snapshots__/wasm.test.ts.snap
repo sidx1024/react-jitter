@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`fixture: 1_default.tsx 1`] = `
-"import { useState } from "react";
+"import { useState } from 'react';
 import { useJitterScope } from "react-jitter/runtime";
 export default function UserForm() {
     const h = useJitterScope({
@@ -12,32 +12,32 @@ export default function UserForm() {
         offset: 15
     });
     const [count, setCount] = useState(0);
-    const nameFieldValues = (h.s("ec1d3339"), h.e(useFieldValues("name"), {
+    const nameFieldValues = (h.s("ec1d3339"), h.e(useFieldValues('name'), {
         id: "ec1d3339",
         file: "1_default.tsx",
         hook: "useFieldValues",
         line: 5,
         offset: 26,
         arguments: [
-            '"name"'
+            "'name'"
         ]
     }));
-    const addressFieldValues = (h.s("c812ff93"), h.e(useFieldValues("city", "state"), {
+    const addressFieldValues = (h.s("c812ff93"), h.e(useFieldValues('city', 'state'), {
         id: "c812ff93",
         file: "1_default.tsx",
         hook: "useFieldValues",
         line: 6,
         offset: 29,
         arguments: [
-            '"city"',
-            '"state"'
+            "'city'",
+            "'state'"
         ]
     }));
     return /*#__PURE__*/ React.createElement("div", null);
 }"
 `;
 
-exports[`fixture: 2_arrow_function.tsx 1`] = `"export const useAddressField = ()=>useFieldValues("address");"`;
+exports[`fixture: 2_arrow_function.tsx 1`] = `"export const useAddressField = ()=>useFieldValues('address');"`;
 
 exports[`fixture: 3_anonymous_function.tsx 1`] = `
 "import { useJitterScope } from "react-jitter/runtime";
@@ -49,7 +49,7 @@ export default function() {
         line: 1,
         offset: 15
     });
-    const fieldValues = (h.s("4bafcb64"), h.e(useFieldValues("name"), {
+    const fieldValues = (h.s("4bafcb64"), h.e(useFieldValues('name'), {
         id: "4bafcb64",
         file: "3_anonymous_function.tsx",
         hook: "useFieldValues",
@@ -73,17 +73,17 @@ exports[`fixture: 5_jsx_function.tsx 1`] = `
 `;
 
 exports[`fixture: 6_create_element.tsx 1`] = `
-"import React from "react";
-import { createElement } from "react";
+"import React from 'react';
+import { createElement } from 'react';
 export function MyComponent() {
-    return /*#__PURE__*/ React.createElement("div", {
-        className: "my-class"
-    }, "Hello");
+    return /*#__PURE__*/ React.createElement('div', {
+        className: 'my-class'
+    }, 'Hello');
 }
 export function AnotherComponent() {
-    return /*#__PURE__*/ createElement("div", {
-        className: "my-class"
-    }, "Hello");
+    return /*#__PURE__*/ createElement('div', {
+        className: 'my-class'
+    }, 'Hello');
 }"
 `;
 
