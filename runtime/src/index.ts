@@ -3,10 +3,10 @@ import type {
   HookEndEvent,
   ReactJitterOptions,
   Scope,
-} from "./types";
+} from './types';
 
-import React from "react";
-import { getChanges } from "./utils/getChanges";
+import React from 'react';
+import { getChanges } from './utils/getChanges';
 
 type HookCall = HookChange &
   HookEndEvent & {
@@ -91,7 +91,7 @@ export function useJitterScope(scope: Scope) {
 }
 
 export function reactJitter(options: ReactJitterOptions) {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return;
   }
 
@@ -108,7 +108,7 @@ export function reactJitter(options: ReactJitterOptions) {
 
 function shouldReportChanges() {
   return (
-    typeof window?.reactJitter?.onHookChange === "function" &&
+    typeof window?.reactJitter?.onHookChange === 'function' &&
     window.reactJitter.enabled
   );
 }
@@ -128,7 +128,7 @@ function getScopeCount(scope: Scope) {
 }
 
 function compareChanges(prev: unknown, current: unknown) {
-  if (prev !== "undefined" && prev !== current) {
+  if (prev !== 'undefined' && prev !== current) {
     return getChanges(prev, current);
   }
 

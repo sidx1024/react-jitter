@@ -1,10 +1,10 @@
-import deepEqual from "fast-deep-equal";
+import deepEqual from 'fast-deep-equal';
 
 export function getChanges(prev: unknown, next: unknown) {
   const changedKeys = [];
   const unstableKeys = [];
   const isObject = (v: unknown): v is Record<string, unknown> =>
-    v !== null && typeof v === "object";
+    v !== null && typeof v === 'object';
 
   const prevIsArr = Array.isArray(prev);
   const nextIsArr = Array.isArray(next);
@@ -13,15 +13,15 @@ export function getChanges(prev: unknown, next: unknown) {
   if (prevIsArr !== nextIsArr) {
     return {
       unstable: true,
-      unstableKeys: ["*"],
-      changedKeys: ["*"],
+      unstableKeys: ['*'],
+      changedKeys: ['*'],
     };
   }
 
   // both arrays
   if (prevIsArr && nextIsArr) {
     if (prev.length !== next.length) {
-      changedKeys.push("length");
+      changedKeys.push('length');
     }
 
     const max = Math.max(prev.length, next.length);
@@ -53,7 +53,7 @@ export function getChanges(prev: unknown, next: unknown) {
     return {
       unstable,
       unstableKeys: [],
-      changedKeys: unstable ? [""] : [],
+      changedKeys: unstable ? [''] : [],
     };
   }
 

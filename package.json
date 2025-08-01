@@ -19,13 +19,15 @@
   "types": "./index.d.ts",
   "scripts": {
     "prepack": "npm run build",
-    "build": "npm run build:runtime && rustup target add wasm32-wasip1 && cargo build --release -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm ./plugin-swc",
-    "build:debug": "npm run build:runtime && rustup target add wasm32-wasip1 && cargo build -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/debug/swc_plugin_react_jitter.wasm ./plugin-swc",
+    "build": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --release --target wasm32-wasip1 && cp ./target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm .",
+    "build:debug": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --target wasm32-wasip1 && cp ./target/wasm32-wasip1/debug/swc_plugin_react_jitter.wasm .",
     "build:runtime": "npm run build --prefix runtime",
     "test": "npm run build && vitest run --testTimeout=0",
     "test:debug": "TEST_DEBUG=true npm run build:debug && vitest run --testTimeout=0",
-    "cargo:fix": "cargo clippy --fix --all-targets --all-features --allow-dirty -- -D warnings",
-    "release": "npm run build && changeset publish"
+    "cargo:fix": "cd plugin-swc && cargo clippy --fix --all-targets --all-features --allow-dirty -- -D warnings",
+    "release": "npm run build && changeset publish",
+    "lint": "biome lint .",
+    "format": "biome format --write ."
   },
   "publishConfig": {
     "access": "public"
@@ -43,7 +45,8 @@
   "keywords": [],
   "license": "MIT",
   "workspaces": [
-    "runtime"
+    "runtime",
+    "plugin-swc"
   ],
   "engines": {
     "node": ">=24"
@@ -53,6 +56,7 @@
     "@swc/counter": "^0.1.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.1.3",
     "@changesets/cli": "^2.29.5",
     "@swc/core": "^1.12.0",
     "@types/node": "^22.13.9",

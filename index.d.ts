@@ -2,7 +2,7 @@ type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
-declare module "react-jitter" {
+declare module 'react-jitter' {
   /**
    * Configuration options for react-jitter
    */
