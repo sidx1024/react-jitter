@@ -55,7 +55,7 @@ const nextConfig = {
     swcPlugins: isDevelopment
       ? [
           [
-            "react-jitter",
+            "react-jitter/plugin-swc",
             {
               // An array of hooks to ignore. For example, `["useSelector"]`.
               ignoreHooks: [],
