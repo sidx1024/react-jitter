@@ -46,8 +46,8 @@ function getChanges(prev, next) {
   const nextIsArr = Array.isArray(next);
   if (prevIsArr !== nextIsArr) {
     return {
-      unstable: true,
-      unstableKeys: ["*"],
+      unstable: false,
+      unstableKeys: [],
       changedKeys: ["*"]
     };
   }
@@ -57,7 +57,7 @@ function getChanges(prev, next) {
     }
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      if (!(0, import_fast_deep_equal.default)(prev[i], next[i])) {
+      if (!(0, import_fast_deep_equal.default)(prev[i], next[i]) || isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i]) {
         const key = String(i);
         changedKeys.push(key);
         if (isObject(prev[i]) || isObject(next[i])) {
@@ -68,7 +68,7 @@ function getChanges(prev, next) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = /* @__PURE__ */ new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      if (!(0, import_fast_deep_equal.default)(prev[key], next[key])) {
+      if (!(0, import_fast_deep_equal.default)(prev[key], next[key]) || isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key]) {
         changedKeys.push(key);
         if (isObject(prev[key]) || isObject(next[key])) {
           unstableKeys.push(key);
@@ -76,15 +76,22 @@ function getChanges(prev, next) {
       }
     }
   } else {
-    const unstable = !(0, import_fast_deep_equal.default)(prev, next);
+    const unstable = isObject(prev) && isObject(next) && !(0, import_fast_deep_equal.default)(prev, next);
+    const changed = !(0, import_fast_deep_equal.default)(prev, next);
     return {
       unstable,
       unstableKeys: [],
-      changedKeys: unstable ? [""] : []
+      changedKeys: changed ? [""] : []
     };
   }
+  const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const unstableRoot = isPlainObject(prev) && isPlainObject(next) && prev !== next && (0, import_fast_deep_equal.default)(prev, next);
+  if (unstableRoot && changedKeys.length === 0) {
+    changedKeys.push("");
+    unstableKeys.push("");
+  }
   return {
-    unstable: changedKeys.length > 0,
+    unstable: unstableKeys.length > 0,
     unstableKeys,
     changedKeys
   };

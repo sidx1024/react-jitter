@@ -82,9 +82,12 @@
     "vitest": "^3.0.7"
   },
   "lint-staged": {
+    "ignore": [
+      "runtime/dist/**/*"
+    ],
     "*.{js,jsx,ts,tsx}": [
-      "biome format --write",
-      "biome lint"
+      "biome format --write --no-errors-on-unmatched",
+      "biome lint --no-errors-on-unmatched"
     ],
     "*.rs": [
       "npm run cargo:fix"

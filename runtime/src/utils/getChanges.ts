@@ -9,11 +9,11 @@ export function getChanges(prev: unknown, next: unknown) {
   const prevIsArr = Array.isArray(prev);
   const nextIsArr = Array.isArray(next);
 
-  // if one’s an array and the other isn’t, bail out immediately
+  // if one’s an array and the other isn’t, it's a value change – unstable should be false
   if (prevIsArr !== nextIsArr) {
     return {
-      unstable: true,
-      unstableKeys: ['*'],
+      unstable: false,
+      unstableKeys: [],
       changedKeys: ['*'],
     };
   }
@@ -26,7 +26,10 @@ export function getChanges(prev: unknown, next: unknown) {
 
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      if (!deepEqual(prev[i], next[i])) {
+      if (
+        !deepEqual(prev[i], next[i]) ||
+        (isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i])
+      ) {
         const key = String(i);
         changedKeys.push(key);
         if (isObject(prev[i]) || isObject(next[i])) {
@@ -39,7 +42,10 @@ export function getChanges(prev: unknown, next: unknown) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      if (!deepEqual(prev[key], next[key])) {
+      if (
+        !deepEqual(prev[key], next[key]) ||
+        (isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key])
+      ) {
         changedKeys.push(key);
         if (isObject(prev[key]) || isObject(next[key])) {
           unstableKeys.push(key);
@@ -49,16 +55,32 @@ export function getChanges(prev: unknown, next: unknown) {
 
     // primitives (or mismatched types other than array↔object)
   } else {
-    const unstable = !deepEqual(prev, next);
+    const unstable = isObject(prev) && isObject(next) && !deepEqual(prev, next);
+    const changed = !deepEqual(prev, next);
     return {
       unstable,
       unstableKeys: [],
-      changedKeys: unstable ? [''] : [],
+      changedKeys: changed ? [''] : [],
     };
   }
 
+  const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+    v !== null && typeof v === 'object' && !Array.isArray(v);
+
+  const unstableRoot =
+    isPlainObject(prev) &&
+    isPlainObject(next) &&
+    prev !== next &&
+    deepEqual(prev, next);
+
+  if (unstableRoot && changedKeys.length === 0) {
+    // For plain object reference change, ensure root sentinel marks both changed and unstable
+    changedKeys.push('');
+    unstableKeys.push('');
+  }
+
   return {
-    unstable: changedKeys.length > 0,
+    unstable: unstableKeys.length > 0,
     unstableKeys,
     changedKeys,
   };
