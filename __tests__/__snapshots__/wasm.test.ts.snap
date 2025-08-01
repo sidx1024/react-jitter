@@ -1,69 +1,57 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`fixture: 1_default.tsx 1`] = `
-"import { useState } from "react";
-import { useJitterScope } from "react-jitter";
+"import { useState } from 'react';
+import { useJitterScope } from "react-jitter/runtime";
 export default function UserForm() {
     const h = useJitterScope({
         name: "UserForm",
-        id: "b492276b",
-        file: "$DIR/1_default.tsx",
+        id: "469edadf",
+        file: "1_default.tsx",
         line: 3,
-        offset: 0
+        offset: 15
     });
-    const [count, setCount] = (h.s("2aeb03d6"), h.e(useState(0), {
-        id: "2aeb03d6",
-        hook: "useState",
-        line: 4,
-        offset: 28
-    }));
-    const nameFieldValues = (h.s("0eef1433"), h.e(useFieldValues("name"), {
-        id: "0eef1433",
+    const [count, setCount] = useState(0);
+    const nameFieldValues = (h.s("ec1d3339"), h.e(useFieldValues('name'), {
+        id: "ec1d3339",
+        file: "1_default.tsx",
         hook: "useFieldValues",
         line: 5,
-        offset: 26
+        offset: 26,
+        arguments: [
+            "'name'"
+        ]
     }));
-    const addressFieldValues = (h.s("9a686f37"), h.e(useFieldValues("address"), {
-        id: "9a686f37",
+    const addressFieldValues = (h.s("c812ff93"), h.e(useFieldValues('city', 'state'), {
+        id: "c812ff93",
+        file: "1_default.tsx",
         hook: "useFieldValues",
         line: 6,
-        offset: 29
+        offset: 29,
+        arguments: [
+            "'city'",
+            "'state'"
+        ]
     }));
     return /*#__PURE__*/ React.createElement("div", null);
 }"
 `;
 
-exports[`fixture: 2_arrow_function.tsx 1`] = `
-"import { useJitterScope } from "react-jitter";
-export const useAddressField = ()=>{
-    const h = useJitterScope({
-        name: "useAddressField",
-        id: "27dbacf3",
-        file: "useAddressField.tsx",
-        line: 1,
-        offset: 31
-    });
-    return h.s("41f1f9ce"), h.e(useFieldValues("address"), {
-        id: "41f1f9ce",
-        hook: "useFieldValues",
-        line: 1,
-        offset: 37
-    });
-};"
-`;
+exports[`fixture: 2_arrow_function.tsx 1`] = `"export const useAddressField = ()=>useFieldValues('address');"`;
 
 exports[`fixture: 3_anonymous_function.tsx 1`] = `
-"import { useJitterScope } from "react-jitter";
+"import { useJitterScope } from "react-jitter/runtime";
 export default function() {
     const h = useJitterScope({
         name: "(anonymous)",
-        id: "95297035",
-        file: "$DIR/3_anonymous_function.tsx",
+        id: "deb1682c",
+        file: "3_anonymous_function.tsx",
         line: 1,
-        offset: 0
+        offset: 15
     });
-    const fieldValues = (h.s("9f49aae6"), h.e(useFieldValues("name"), {
-        id: "9f49aae6",
+    const fieldValues = (h.s("4bafcb64"), h.e(useFieldValues('name'), {
+        id: "4bafcb64",
+        file: "3_anonymous_function.tsx",
         hook: "useFieldValues",
         line: 2,
         offset: 22
@@ -73,8 +61,41 @@ export default function() {
 `;
 
 exports[`fixture: 4_non_react_function.tsx 1`] = `
-"import { useJitterScope } from "react-jitter";
-export function notAReactComponent() {
+"export function notAReactComponent() {
     return 5;
+}"
+`;
+
+exports[`fixture: 5_jsx_function.tsx 1`] = `
+"export const Component = ()=>{
+    return /*#__PURE__*/ React.createElement("div", null, "Hello");
+};"
+`;
+
+exports[`fixture: 6_create_element.tsx 1`] = `
+"import React from 'react';
+import { createElement } from 'react';
+export function MyComponent() {
+    return /*#__PURE__*/ React.createElement('div', {
+        className: 'my-class'
+    }, 'Hello');
+}
+export function AnotherComponent() {
+    return /*#__PURE__*/ createElement('div', {
+        className: 'my-class'
+    }, 'Hello');
+}"
+`;
+
+exports[`fixture: 7_use_prefix.tsx 1`] = `
+"export function selectUser() {
+    const hasPermission = userHasPermission();
+    return hasPermission;
+}"
+`;
+
+exports[`fixture: 8_jsx_outside_component.tsx 1`] = `
+"function getBannerContent() {
+    return /*#__PURE__*/ React.createElement("div", null);
 }"
 `;
