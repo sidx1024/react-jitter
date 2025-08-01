@@ -24,8 +24,8 @@
   ],
   "scripts": {
     "prepack": "npm run build",
-    "build": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --release --target wasm32-wasip1",
-    "build:debug": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --target wasm32-wasip1",
+    "build": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --release --target wasm32-wasip1 && cp ./target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm .",
+    "build:debug": "npm run build:runtime && cd plugin-swc && rustup target add wasm32-wasip1 && cargo build --target wasm32-wasip1 && cp ./target/wasm32-wasip1/debug/swc_plugin_react_jitter.wasm .",
     "build:runtime": "npm run build --prefix runtime",
     "test": "npm run build && vitest run --testTimeout=0",
     "test:debug": "TEST_DEBUG=true npm run build:debug && vitest run --testTimeout=0",
