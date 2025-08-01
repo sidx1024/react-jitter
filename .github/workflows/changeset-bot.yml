@@ -3,6 +3,10 @@ name: Changeset Bot
 on:
   pull_request:
 
+permissions:
+  pull-requests: write
+  issues: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
