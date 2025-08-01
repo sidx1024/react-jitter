@@ -1,5 +1,6 @@
 {
   "name": "react-jitter-runtime",
+  "private": true,
   "version": "1.0.0",
   "sideEffects": false,
   "main": "dist/index.js",
