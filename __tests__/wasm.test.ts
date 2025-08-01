@@ -16,6 +16,10 @@ const pluginPath = path.join(
   pluginName
 );
 
+if (!fs.existsSync(pluginPath)) {
+  throw new Error(`Plugin file not found: ${pluginPath}`);
+}
+
 const transformCode = async (
   code: string,
   options = {},
