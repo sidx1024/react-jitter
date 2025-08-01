@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use serde_json;
 use std::collections::HashSet;
 use glob::Pattern;
 use swc_core::common::errors::SourceMapper;
@@ -111,8 +110,8 @@ impl Visit for ReactFnAnalyzer {
         if let Callee::Expr(expr) = &n.callee {
             if let Expr::Ident(id) = &**expr {
                 let s = id.sym.as_ref();
-                if s.starts_with("use") {
-                    if s.len() > 3 {
+                if s.starts_with("use")
+                    && s.len() > 3 {
                         if let Some(c) = s.chars().nth(3) {
                             if c.is_uppercase() {
                                 self.should_instrument = true;
@@ -120,7 +119,6 @@ impl Visit for ReactFnAnalyzer {
                             }
                         }
                     }
-                }
             }
         }
         n.visit_children_with(self);
@@ -181,7 +179,7 @@ impl JitterTransform {
 
     fn generate_location_hash(&self, file: &str, line: f64, offset: f64) -> String {
         use sha2::{Digest, Sha256};
-        let input = format!("{}:{}:{}", file, line, offset);
+        let input = format!("{file}:{line}:{offset}");
         let mut hasher = Sha256::new();
         hasher.update(input.as_bytes());
         let result = hasher.finalize();
@@ -198,7 +196,7 @@ impl JitterTransform {
             return false;
         }
 
-        s.len() > 3 && s.chars().nth(3).map_or(false, |c| c.is_uppercase())
+        s.len() > 3 && s.chars().nth(3).is_some_and(|c| c.is_uppercase())
     }
 
     fn instrument_function_body(&mut self, body: &mut BlockStmt, component_ident: &Ident, span: Span) {
@@ -212,7 +210,7 @@ impl JitterTransform {
 
         let props = vec![
             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(quote_ident!("name").into()),
+                key: PropName::Ident(quote_ident!("name")),
                 value: Box::new(Expr::Lit(Lit::Str(Str {
                     span: DUMMY_SP,
                     value: component_ident.sym.clone(),
@@ -220,7 +218,7 @@ impl JitterTransform {
                 }))),
             }))),
             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(quote_ident!("id").into()),
+                key: PropName::Ident(quote_ident!("id")),
                 value: Box::new(Expr::Lit(Lit::Str(Str {
                     span: DUMMY_SP,
                     value: hash.into(),
@@ -228,7 +226,7 @@ impl JitterTransform {
                 }))),
             }))),
             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(quote_ident!("file").into()),
+                key: PropName::Ident(quote_ident!("file")),
                 value: Box::new(Expr::Lit(Lit::Str(Str {
                     span: DUMMY_SP,
                     value: self.file_path.clone().into(),
@@ -236,7 +234,7 @@ impl JitterTransform {
                 }))),
             }))),
             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(quote_ident!("line").into()),
+                key: PropName::Ident(quote_ident!("line")),
                 value: Box::new(Expr::Lit(Lit::Num(Number {
                     span: DUMMY_SP,
                     value: linecol.line as f64,
@@ -244,7 +242,7 @@ impl JitterTransform {
                 }))),
             }))),
             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(quote_ident!("offset").into()),
+                key: PropName::Ident(quote_ident!("offset")),
                 value: Box::new(Expr::Lit(Lit::Num(Number {
                     span: DUMMY_SP,
                     value: linecol.col_display as f64,
@@ -295,14 +293,13 @@ impl VisitMut for JitterTransform {
                     src, specifiers, ..
                 })) = item
                 {
-                    if src.value == *"react-jitter/runtime" {
-                        if specifiers.iter().any(|s| match s {
+                    if src.value == *"react-jitter/runtime"
+                        && specifiers.iter().any(|s| match s {
                             ImportSpecifier::Named(n) => n.local.sym == *"useJitterScope",
                             _ => false,
                         }) {
                             has_import = true;
                         }
-                    }
                 }
             }
             if !has_import {
@@ -335,10 +332,10 @@ impl VisitMut for JitterTransform {
 
     fn visit_mut_fn_decl(&mut self, n: &mut FnDecl) {
         let ident_name = n.ident.sym.as_ref();
-        let is_component = ident_name.chars().next().map_or(false, |c| c.is_uppercase());
+        let is_component = ident_name.chars().next().is_some_and(|c| c.is_uppercase());
 
-        if is_component {
-            if ReactFnAnalyzer::new().analyze_fn(|analyzer| {
+        if is_component
+            && ReactFnAnalyzer::new().analyze_fn(|analyzer| {
                 n.function.visit_with(analyzer);
             }) {
                 let prev_component = self.current_component.clone();
@@ -352,7 +349,6 @@ impl VisitMut for JitterTransform {
                 self.current_component = prev_component;
                 return;
             }
-        }
         
         n.visit_mut_children_with(self);
     }
@@ -360,12 +356,12 @@ impl VisitMut for JitterTransform {
     fn visit_mut_export_default_decl(&mut self, n: &mut ExportDefaultDecl) {
         if let DefaultDecl::Fn(fn_expr) = &mut n.decl {
             let is_component = match &fn_expr.ident {
-                Some(id) => id.sym.chars().next().map_or(false, |c| c.is_uppercase()),
+                Some(id) => id.sym.chars().next().is_some_and(|c| c.is_uppercase()),
                 None => true, // Anonymous functions are often components
             };
 
-            if is_component {
-                if ReactFnAnalyzer::new().analyze_fn(|analyzer| {
+            if is_component
+                && ReactFnAnalyzer::new().analyze_fn(|analyzer| {
                     fn_expr.function.visit_with(analyzer);
                 }) {
                     let ident = fn_expr.ident.clone().unwrap_or_else(|| quote_ident!("(anonymous)").into());
@@ -380,7 +376,6 @@ impl VisitMut for JitterTransform {
                     self.current_component = prev_component;
                     return;
                 }
-            }
         }
         
         n.visit_mut_children_with(self);
@@ -390,10 +385,10 @@ impl VisitMut for JitterTransform {
         match &mut n.decl {
             Decl::Fn(fn_decl) => {
                 let ident_name = fn_decl.ident.sym.as_ref();
-                let is_component = ident_name.chars().next().map_or(false, |c| c.is_uppercase());
+                let is_component = ident_name.chars().next().is_some_and(|c| c.is_uppercase());
 
-                if is_component {
-                    if ReactFnAnalyzer::new().analyze_fn(|analyzer| {
+                if is_component
+                    && ReactFnAnalyzer::new().analyze_fn(|analyzer| {
                         fn_decl.function.visit_with(analyzer);
                     }) {
                         let prev_component = self.current_component.clone();
@@ -407,7 +402,6 @@ impl VisitMut for JitterTransform {
                         self.current_component = prev_component;
                         return;
                     }
-                }
                 
                 n.visit_mut_children_with(self);
             },
@@ -416,7 +410,7 @@ impl VisitMut for JitterTransform {
                     if let Pat::Ident(binding_ident) = &var.name {
                         let comp_ident = binding_ident.id.clone();
                         let ident_name = comp_ident.sym.as_ref();
-                        let is_component = ident_name.chars().next().map_or(false, |c| c.is_uppercase());
+                        let is_component = ident_name.chars().next().is_some_and(|c| c.is_uppercase());
 
                         if is_component {
                             if let Some(init_expr) = &mut var.init {
@@ -439,23 +433,23 @@ impl VisitMut for JitterTransform {
                                                 
                                                 let props = vec![
                                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                        key: PropName::Ident(quote_ident!("name").into()),
+                                                        key: PropName::Ident(quote_ident!("name")),
                                                         value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: comp_ident.sym.clone(), raw: None, }))),
                                                     }))),
                                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                        key: PropName::Ident(quote_ident!("id").into()),
+                                                        key: PropName::Ident(quote_ident!("id")),
                                                         value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: hash.into(), raw: None, }))),
                                                     }))),
                                                      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                        key: PropName::Ident(quote_ident!("file").into()),
+                                                        key: PropName::Ident(quote_ident!("file")),
                                                         value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: self.file_path.clone().into(), raw: None, }))),
                                                     }))),
                                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                        key: PropName::Ident(quote_ident!("line").into()),
+                                                        key: PropName::Ident(quote_ident!("line")),
                                                         value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: linecol.line as f64, raw: None, }))),
                                                     }))),
                                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                                        key: PropName::Ident(quote_ident!("offset").into()),
+                                                        key: PropName::Ident(quote_ident!("offset")),
                                                         value: Box::new(Expr::Lit(Lit::Num(Number { span: DUMMY_SP, value: linecol.col_display as f64, raw: None, }))),
                                                     }))),
                                                 ];
@@ -546,7 +540,7 @@ impl VisitMut for JitterTransform {
                             let linecol = self.line_col(call.span);
                             let mut hook_meta_props = vec![
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("id").into()),
+                                        key: PropName::Ident(quote_ident!("id")),
                                         value: Box::new(Expr::Lit(Lit::Str(Str {
                                             span: DUMMY_SP,
                                             value: self
@@ -560,7 +554,7 @@ impl VisitMut for JitterTransform {
                                         }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("file").into()),
+                                        key: PropName::Ident(quote_ident!("file")),
                                         value: Box::new(Expr::Lit(Lit::Str(Str {
                                             span: DUMMY_SP,
                                             value: self.file_path.clone().into(),
@@ -568,7 +562,7 @@ impl VisitMut for JitterTransform {
                                         }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("hook").into()),
+                                        key: PropName::Ident(quote_ident!("hook")),
                                         value: Box::new(Expr::Lit(Lit::Str(Str {
                                             span: DUMMY_SP,
                                             value: id.sym.clone(),
@@ -576,7 +570,7 @@ impl VisitMut for JitterTransform {
                                         }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("line").into()),
+                                        key: PropName::Ident(quote_ident!("line")),
                                         value: Box::new(Expr::Lit(Lit::Num(Number {
                                             span: DUMMY_SP,
                                             value: linecol.line as f64,
@@ -584,7 +578,7 @@ impl VisitMut for JitterTransform {
                                         }))),
                                     }))),
                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                        key: PropName::Ident(quote_ident!("offset").into()),
+                                        key: PropName::Ident(quote_ident!("offset")),
                                         value: Box::new(Expr::Lit(Lit::Num(Number {
                                             span: DUMMY_SP,
                                             value: linecol.col_display as f64,
@@ -621,7 +615,7 @@ impl VisitMut for JitterTransform {
                                 }
 
                                 hook_meta_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                    key: PropName::Ident(quote_ident!("arguments").into()),
+                                    key: PropName::Ident(quote_ident!("arguments")),
                                     value: Box::new(Expr::Array(ArrayLit {
                                         span: DUMMY_SP,
                                         elems: args_vec,
@@ -642,7 +636,7 @@ impl VisitMut for JitterTransform {
                                         callee: MemberExpr {
                                             span: DUMMY_SP,
                                             obj: Box::new(Expr::Ident(h_ident.clone().into())),
-                                            prop: MemberProp::Ident(quote_ident!("s").into()),
+                                            prop: MemberProp::Ident(quote_ident!("s")),
                                         }
                                         .as_callee(),
                                         args: vec![Expr::Lit(Lit::Str(Str {
@@ -665,7 +659,7 @@ impl VisitMut for JitterTransform {
                                         callee: MemberExpr {
                                             span: DUMMY_SP,
                                             obj: Box::new(Expr::Ident(h_ident.into())),
-                                            prop: MemberProp::Ident(quote_ident!("e").into()),
+                                            prop: MemberProp::Ident(quote_ident!("e")),
                                         }
                                         .as_callee(),
                                         args: vec![expr.clone().as_arg(), hook_meta.as_arg()],
