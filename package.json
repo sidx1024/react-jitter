@@ -84,6 +84,9 @@
     "*.{js,jsx,ts,tsx}": [
       "biome format --write",
       "biome lint"
+    ],
+    "*.rs": [
+      "npm run cargo:fix"
     ]
   }
 }
