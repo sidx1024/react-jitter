@@ -60,6 +60,11 @@
     "instrumentation"
   ],
   "license": "MIT",
+  "workspaces": [
+    ".",
+    "runtime",
+    "plugin-swc"
+  ],
   "engines": {
     "node": ">=24"
   },
