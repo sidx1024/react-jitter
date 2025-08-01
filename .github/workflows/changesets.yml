@@ -7,6 +7,10 @@ on:
 
 jobs:
   version:
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
