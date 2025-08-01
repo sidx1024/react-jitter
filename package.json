@@ -1,11 +1,27 @@
 {
   "name": "react-jitter",
   "version": "0.0.1",
+  "workspaces": [
+    "runtime"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./swc_plugin_react_jitter.wasm"
+    },
+    "./runtime": {
+      "types": "./runtime/dist/index.d.ts",
+      "import": "./runtime/dist/index.mjs",
+      "require": "./runtime/dist/index.js"
+    }
+  },
   "main": "swc_plugin_react_jitter.wasm",
+  "types": "./index.d.ts",
   "scripts": {
     "prepack": "npm run build",
-    "build": "rustup target add wasm32-wasip1 && cargo build --release -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm .",
-    "build:debug": "rustup target add wasm32-wasip1 && cargo build -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/debug/swc_plugin_react_jitter.wasm .",
+    "build": "npm run build:runtime && rustup target add wasm32-wasip1 && cargo build --release -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/release/swc_plugin_react_jitter.wasm .",
+    "build:debug": "npm run build:runtime && rustup target add wasm32-wasip1 && cargo build -p swc_plugin_react_jitter --target wasm32-wasip1 && cp target/wasm32-wasip1/debug/swc_plugin_react_jitter.wasm .",
+    "build:runtime": "npm run build -w runtime",
     "test": "npm run build && vitest run --testTimeout=0",
     "test:debug": "TEST_DEBUG=true npm run build:debug && vitest run --testTimeout=0",
     "cargo:fix": "cargo clippy --fix --all-targets --all-features --allow-dirty -- -D warnings"

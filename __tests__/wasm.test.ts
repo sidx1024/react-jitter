@@ -46,7 +46,8 @@ const fixtureFiles = fs
 for (const file of fixtureFiles) {
   test(`fixture: ${file}`, async () => {
     const input = fs.readFileSync(path.join(fixturesDir, file), "utf-8");
-    const { code } = await transformCode(input, {}, file);
+    const options = file === "1_default.tsx" ? { includeArguments: true } : {};
+    const { code } = await transformCode(input, options, file);
     expect(code.trim()).toMatchSnapshot();
   });
 }
