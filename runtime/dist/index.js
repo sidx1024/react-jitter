@@ -57,10 +57,12 @@ function getChanges(prev, next) {
     }
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      if (!(0, import_fast_equals.deepEqual)(prev[i], next[i]) || isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i]) {
+      const deepEqItem = (0, import_fast_equals.deepEqual)(prev[i], next[i]);
+      const refDiffItem = isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i];
+      if (!deepEqItem || refDiffItem) {
         const key = String(i);
         changedKeys.push(key);
-        if (isObject(prev[i]) || isObject(next[i])) {
+        if (refDiffItem && deepEqItem) {
           unstableKeys.push(key);
         }
       }
@@ -68,16 +70,20 @@ function getChanges(prev, next) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = /* @__PURE__ */ new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      if (!(0, import_fast_equals.deepEqual)(prev[key], next[key]) || isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key]) {
+      const deepEqProp = (0, import_fast_equals.deepEqual)(prev[key], next[key]);
+      const refDiffProp = isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key];
+      if (!deepEqProp || refDiffProp) {
         changedKeys.push(key);
-        if (isObject(prev[key]) || isObject(next[key])) {
+        if (refDiffProp && deepEqProp) {
           unstableKeys.push(key);
         }
       }
     }
   } else {
-    const unstable = isObject(prev) && isObject(next) && !(0, import_fast_equals.deepEqual)(prev, next);
-    const changed = !(0, import_fast_equals.deepEqual)(prev, next);
+    const deepEqRoot = (0, import_fast_equals.deepEqual)(prev, next);
+    const refDiffRoot = isObject(prev) && isObject(next) && prev !== next;
+    const unstable = refDiffRoot && deepEqRoot;
+    const changed = !deepEqRoot || refDiffRoot;
     return {
       unstable,
       unstableKeys: [],
@@ -110,41 +116,45 @@ function useJitterScope(scope) {
       hookResults: {}
     };
   }
-  return {
-    s: (id) => {
-      hookStack.set(id, null);
-    },
-    e: (hookResult, hookEndEvent) => {
-      const currentScope = scopes[scopeId];
-      if (!currentScope) {
+  const hooks = import_react.default.useRef(null);
+  if (!hooks.current) {
+    hooks.current = {
+      s: (id) => {
+        hookStack.set(id, null);
+      },
+      e: (hookResult, hookEndEvent) => {
+        const currentScope = scopes[scopeId];
+        if (!currentScope) {
+          return hookResult;
+        }
+        if (shouldReportChanges()) {
+          const prevResult = currentScope.hookResults[hookEndEvent.id];
+          const changes = compareChanges(prevResult, hookResult);
+          if (changes) {
+            const hookCall = {
+              hook: hookEndEvent.hook,
+              file: hookEndEvent.file,
+              line: hookEndEvent.line,
+              offset: hookEndEvent.offset,
+              id: hookEndEvent.id,
+              scope,
+              ...changes,
+              previousResult: prevResult,
+              currentResult: hookResult
+            };
+            if (hookEndEvent.arguments) {
+              hookCall.arguments = hookEndEvent.arguments;
+            }
+            callOnHookChange(hookCall);
+          }
+        }
+        currentScope.hookResults[hookEndEvent.id] = hookResult;
+        hookStack.delete(hookEndEvent.id);
         return hookResult;
       }
-      if (shouldReportChanges()) {
-        const prevResult = currentScope.hookResults[hookEndEvent.id];
-        const changes = compareChanges(prevResult, hookResult);
-        if (changes) {
-          const hookCall = {
-            hook: hookEndEvent.hook,
-            file: hookEndEvent.file,
-            line: hookEndEvent.line,
-            offset: hookEndEvent.offset,
-            id: hookEndEvent.id,
-            scope,
-            ...changes,
-            previousResult: prevResult,
-            currentResult: hookResult
-          };
-          if (hookEndEvent.arguments) {
-            hookCall.arguments = hookEndEvent.arguments;
-          }
-          callOnHookChange(hookCall);
-        }
-      }
-      currentScope.hookResults[hookEndEvent.id] = hookResult;
-      hookStack.delete(hookEndEvent.id);
-      return hookResult;
-    }
-  };
+    };
+  }
+  return hooks.current;
 }
 function reactJitter(options) {
   var _a, _b, _c, _d;

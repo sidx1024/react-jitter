@@ -48,46 +48,55 @@ export function useJitterScope(scope: Scope) {
     };
   }
 
+  const hooks = React.useRef<{
+    s: (id: string) => void;
+    e: (hookResult: unknown, hookEndEvent: HookEndEvent) => unknown;
+  } | null>(null);
+
+  if (!hooks.current) {
+    hooks.current = {
+      s: (id: string) => {
+        hookStack.set(id, null);
+      },
+      e: (hookResult: unknown, hookEndEvent: HookEndEvent) => {
+        const currentScope = scopes[scopeId];
+        if (!currentScope) {
+          return hookResult;
+        }
+
+        if (shouldReportChanges()) {
+          const prevResult = currentScope.hookResults[hookEndEvent.id];
+          const changes = compareChanges(prevResult, hookResult);
+          if (changes) {
+            const hookCall: HookCall = {
+              hook: hookEndEvent.hook,
+              file: hookEndEvent.file,
+              line: hookEndEvent.line,
+              offset: hookEndEvent.offset,
+              id: hookEndEvent.id,
+              scope,
+              ...changes,
+              previousResult: prevResult,
+              currentResult: hookResult,
+            };
+            if (hookEndEvent.arguments) {
+              hookCall.arguments = hookEndEvent.arguments;
+            }
+            callOnHookChange(hookCall);
+          }
+        }
+
+        currentScope.hookResults[hookEndEvent.id] = hookResult;
+        hookStack.delete(hookEndEvent.id);
+
+        return hookResult;
+      },
+    };
+  }
+
   // TODO: Think about cleanup strategy
 
-  return {
-    s: (id: string) => {
-      hookStack.set(id, null);
-    },
-    e: (hookResult: unknown, hookEndEvent: HookEndEvent) => {
-      const currentScope = scopes[scopeId];
-      if (!currentScope) {
-        return hookResult;
-      }
-
-      if (shouldReportChanges()) {
-        const prevResult = currentScope.hookResults[hookEndEvent.id];
-        const changes = compareChanges(prevResult, hookResult);
-        if (changes) {
-          const hookCall: HookCall = {
-            hook: hookEndEvent.hook,
-            file: hookEndEvent.file,
-            line: hookEndEvent.line,
-            offset: hookEndEvent.offset,
-            id: hookEndEvent.id,
-            scope,
-            ...changes,
-            previousResult: prevResult,
-            currentResult: hookResult,
-          };
-          if (hookEndEvent.arguments) {
-            hookCall.arguments = hookEndEvent.arguments;
-          }
-          callOnHookChange(hookCall);
-        }
-      }
-
-      currentScope.hookResults[hookEndEvent.id] = hookResult;
-      hookStack.delete(hookEndEvent.id);
-
-      return hookResult;
-    },
-  };
+  return hooks.current;
 }
 
 export function reactJitter(options: ReactJitterOptions) {

@@ -48,8 +48,8 @@ describe('getChanges', () => {
 
     // Object in array value change (deep value differs) – unstable should be false
     expect(getChanges([{ a: 1 }], [{ a: 2 }])).toEqual({
-      unstable: true,
-      unstableKeys: ['0'],
+      unstable: false,
+      unstableKeys: [],
       changedKeys: ['0'],
     });
 
@@ -90,10 +90,10 @@ describe('getChanges', () => {
       changedKeys: ['b'],
     });
 
-    // Nested object value change (b differs) – unstable true because nested ref changed
+    // Nested object value change (b differs) – should NOT be unstable
     expect(getChanges({ a: { b: 1 } }, { a: { b: 2 } })).toEqual({
-      unstable: true,
-      unstableKeys: ['a'],
+      unstable: false,
+      unstableKeys: [],
       changedKeys: ['a'],
     });
 

@@ -26,13 +26,13 @@ export function getChanges(prev: unknown, next: unknown) {
 
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      if (
-        !deepEqual(prev[i], next[i]) ||
-        (isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i])
-      ) {
+      const deepEqItem = deepEqual(prev[i], next[i]);
+      const refDiffItem =
+        isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i];
+      if (!deepEqItem || refDiffItem) {
         const key = String(i);
         changedKeys.push(key);
-        if (isObject(prev[i]) || isObject(next[i])) {
+        if (refDiffItem && deepEqItem) {
           unstableKeys.push(key);
         }
       }
@@ -42,12 +42,12 @@ export function getChanges(prev: unknown, next: unknown) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      if (
-        !deepEqual(prev[key], next[key]) ||
-        (isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key])
-      ) {
+      const deepEqProp = deepEqual(prev[key], next[key]);
+      const refDiffProp =
+        isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key];
+      if (!deepEqProp || refDiffProp) {
         changedKeys.push(key);
-        if (isObject(prev[key]) || isObject(next[key])) {
+        if (refDiffProp && deepEqProp) {
           unstableKeys.push(key);
         }
       }
@@ -55,8 +55,10 @@ export function getChanges(prev: unknown, next: unknown) {
 
     // primitives (or mismatched types other than array↔object)
   } else {
-    const unstable = isObject(prev) && isObject(next) && !deepEqual(prev, next);
-    const changed = !deepEqual(prev, next);
+    const deepEqRoot = deepEqual(prev, next);
+    const refDiffRoot = isObject(prev) && isObject(next) && prev !== next;
+    const unstable = refDiffRoot && deepEqRoot;
+    const changed = !deepEqRoot || refDiffRoot;
     return {
       unstable,
       unstableKeys: [],
