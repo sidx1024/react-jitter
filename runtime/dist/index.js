@@ -139,6 +139,7 @@ function useJitterScope(scope) {
               line: hookEndEvent.line,
               offset: hookEndEvent.offset,
               id: hookEndEvent.id,
+              scopeId,
               scope,
               ...changes,
               previousResult: prevResult,

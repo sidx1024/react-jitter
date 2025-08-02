@@ -10,6 +10,7 @@ import { getChanges } from './utils/getChanges';
 
 type HookCall = HookChange &
   HookEndEvent & {
+    scopeId: string;
     scope: Scope;
     previousResult: unknown;
     currentResult: unknown;
@@ -77,6 +78,7 @@ export function useJitterScope(scope: Scope) {
               line: hookEndEvent.line,
               offset: hookEndEvent.offset,
               id: hookEndEvent.id,
+              scopeId,
               scope,
               ...changes,
               previousResult: prevResult,

@@ -48,6 +48,7 @@ type ReactJitterOptions = {
 type Scope = z.infer<typeof ScopeSchema>;
 
 type HookCall = HookChange & HookEndEvent & {
+    scopeId: string;
     scope: Scope;
     previousResult: unknown;
     currentResult: unknown;
