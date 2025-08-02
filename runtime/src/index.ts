@@ -56,7 +56,8 @@ export function useJitterScope(scope: Scope) {
   if (!hooks.current) {
     hooks.current = {
       s: (id: string) => {
-        hookStack.set(id, null);
+        const hookId = `${scopeId}-${id}`;
+        hookStack.set(hookId, null);
       },
       e: (hookResult: unknown, hookEndEvent: HookEndEvent) => {
         const currentScope = scopes[scopeId];
@@ -64,8 +65,10 @@ export function useJitterScope(scope: Scope) {
           return hookResult;
         }
 
+        const hookId = `${scopeId}-${hookEndEvent.id}`;
+
         if (shouldReportChanges()) {
-          const prevResult = currentScope.hookResults[hookEndEvent.id];
+          const prevResult = currentScope.hookResults[hookId];
           const changes = compareChanges(prevResult, hookResult);
           if (changes) {
             const hookCall: HookCall = {
@@ -86,8 +89,8 @@ export function useJitterScope(scope: Scope) {
           }
         }
 
-        currentScope.hookResults[hookEndEvent.id] = hookResult;
-        hookStack.delete(hookEndEvent.id);
+        currentScope.hookResults[hookId] = hookResult;
+        hookStack.delete(hookId);
 
         return hookResult;
       },

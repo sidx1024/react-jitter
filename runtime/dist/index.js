@@ -120,15 +120,17 @@ function useJitterScope(scope) {
   if (!hooks.current) {
     hooks.current = {
       s: (id) => {
-        hookStack.set(id, null);
+        const hookId = `${scopeId}-${id}`;
+        hookStack.set(hookId, null);
       },
       e: (hookResult, hookEndEvent) => {
         const currentScope = scopes[scopeId];
         if (!currentScope) {
           return hookResult;
         }
+        const hookId = `${scopeId}-${hookEndEvent.id}`;
         if (shouldReportChanges()) {
-          const prevResult = currentScope.hookResults[hookEndEvent.id];
+          const prevResult = currentScope.hookResults[hookId];
           const changes = compareChanges(prevResult, hookResult);
           if (changes) {
             const hookCall = {
@@ -148,8 +150,8 @@ function useJitterScope(scope) {
             callOnHookChange(hookCall);
           }
         }
-        currentScope.hookResults[hookEndEvent.id] = hookResult;
-        hookStack.delete(hookEndEvent.id);
+        currentScope.hookResults[hookId] = hookResult;
+        hookStack.delete(hookId);
         return hookResult;
       }
     };
