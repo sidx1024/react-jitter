@@ -90,7 +90,7 @@
       "biome lint --no-errors-on-unmatched"
     ],
     "*.rs": [
-      "npm run cargo:fix"
+      "bash -c 'npm run cargo:fix'"
     ]
   }
 }

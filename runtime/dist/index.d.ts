@@ -70,6 +70,7 @@ declare global {
 declare function useJitterScope(scope: Scope): {
     s: (id: string) => void;
     e: (hookResult: unknown, hookEndEvent: HookEndEvent) => unknown;
+    re: <T>(renderResult: T) => T;
 };
 declare function reactJitter(options: ReactJitterOptions): void;
 

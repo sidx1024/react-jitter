@@ -57,6 +57,7 @@ export function useJitterScope(scope: Scope) {
   const hooks = React.useRef<{
     s: (id: string) => void;
     e: (hookResult: unknown, hookEndEvent: HookEndEvent) => unknown;
+    re: <T>(renderResult: T) => T;
   } | null>(null);
 
   if (!hooks.current) {
@@ -100,6 +101,10 @@ export function useJitterScope(scope: Scope) {
         hookStack.delete(hookId);
 
         return hookResult;
+      },
+      re: <T>(renderResult: T): T => {
+        // Render end - currently passthrough, could add diffing logic here in the future
+        return renderResult;
       },
     };
   }

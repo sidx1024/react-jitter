@@ -156,6 +156,9 @@ function useJitterScope(scope) {
         currentScope.hookResults[hookId] = hookResult;
         hookStack.delete(hookId);
         return hookResult;
+      },
+      re: (renderResult) => {
+        return renderResult;
       }
     };
   }

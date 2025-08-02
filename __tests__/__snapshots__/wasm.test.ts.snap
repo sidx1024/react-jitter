@@ -33,7 +33,7 @@ export default function UserForm() {
             "'state'"
         ]
     }));
-    return /*#__PURE__*/ React.createElement("div", null);
+    return /*#__PURE__*/ h.re(React.createElement("div", null));
 }"
 `;
 
@@ -56,7 +56,7 @@ export default function() {
         line: 2,
         offset: 22
     }));
-    return /*#__PURE__*/ React.createElement("div", null);
+    return /*#__PURE__*/ h.re(React.createElement("div", null));
 }"
 `;
 
@@ -97,5 +97,27 @@ exports[`fixture: 7_use_prefix.tsx 1`] = `
 exports[`fixture: 8_jsx_outside_component.tsx 1`] = `
 "function getBannerContent() {
     return /*#__PURE__*/ React.createElement("div", null);
+}"
+`;
+
+exports[`fixture: 9_nested_function.tsx 1`] = `
+"import { useState } from 'react';
+import { useJitterScope } from "react-jitter/runtime";
+export function NestedFunction() {
+    const h = useJitterScope({
+        name: "NestedFunction",
+        id: "1b4b5c19",
+        file: "9_nested_function.tsx",
+        line: 3,
+        offset: 7
+    });
+    const [count, setCount] = useState(0);
+    function handleClick() {
+        setCount(count + 1);
+    }
+    return h.re(/*#__PURE__*/ React.createElement("button", {
+        type: "button",
+        onClick: handleClick
+    }, "Click me"));
 }"
 `;
