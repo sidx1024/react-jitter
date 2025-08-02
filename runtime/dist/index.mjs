@@ -77,10 +77,12 @@ function useJitterScope(scope) {
   const scopeId = `${scope.id}-${scopeCount}`;
   if (!scopes[scopeId]) {
     scopes[scopeId] = {
+      renderCount: 0,
       ...scope,
       hookResults: {}
     };
   }
+  scopes[scopeId].renderCount++;
   const hooks = React.useRef(null);
   if (!hooks.current) {
     hooks.current = {

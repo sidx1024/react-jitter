@@ -16,8 +16,10 @@ type HookCall = HookChange &
     currentResult: unknown;
   };
 
-const scopes: Record<string, Scope & { hookResults: Record<string, unknown> }> =
-  {};
+const scopes: Record<
+  string,
+  Scope & { hookResults: Record<string, unknown>; renderCount: number }
+> = {};
 
 const hookStack = new Map<string, unknown>();
 
@@ -44,10 +46,13 @@ export function useJitterScope(scope: Scope) {
 
   if (!scopes[scopeId]) {
     scopes[scopeId] = {
+      renderCount: 0,
       ...scope,
       hookResults: {},
     };
   }
+
+  scopes[scopeId].renderCount++;
 
   const hooks = React.useRef<{
     s: (id: string) => void;
