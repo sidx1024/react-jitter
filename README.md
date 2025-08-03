@@ -187,6 +187,38 @@ Here is an example of the `render` object from `onRender`:
 
 This object provides the component's unique instance ID, its render count, location metadata, and a map of all hook results for the current render.
 
+You can use the `includeArguments` option to identify which context has changed. When `includeArguments` is set to `true` in the SWC plugin configuration, the `onHookChange` callback will include the arguments passed to the hook. This is especially useful for `useContext`, as it allows you to see which context was used.
+
+Here is an example of the `change` object when `includeArguments` is enabled:
+
+```json
+{
+  "hook": "useContext",
+  "arguments": ["UserContext"],
+  "file": "/src/components/UserProfile.tsx",
+  "line": 12,
+  "offset": 18,
+  "scope": {
+    "name": "UserProfile",
+    "file": "/src/components/UserProfile.tsx",
+    "line": 8,
+    "offset": 1
+  },
+  "unstable": false,
+  "unstableKeys": [],
+  "changedKeys": ["user"],
+  "previousResult": {
+    "user": { "name": "John" }
+  },
+  "currentResult": {
+    "user": { "name": "Jane" }
+  }
+}
+```
+
+In this example, the `arguments` field shows that the `UserContext` was used, and the `changedKeys` field shows that the `user` property has changed.
+
+
 ## How It Works
 
 React Jitter is composed of two parts:
