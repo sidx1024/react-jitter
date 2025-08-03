@@ -112,9 +112,11 @@ function useJitterScope(scope) {
   const scopeId = `${scope.id}-${scopeCount}`;
   if (!scopes[scopeId]) {
     scopes[scopeId] = {
+      scopeId,
       renderCount: 0,
       ...scope,
-      hookResults: {}
+      hookResults: {},
+      hookChanges: []
     };
   }
   scopes[scopeId].renderCount++;
@@ -141,7 +143,6 @@ function useJitterScope(scope) {
               line: hookEndEvent.line,
               offset: hookEndEvent.offset,
               id: hookEndEvent.id,
-              scopeId,
               scope,
               ...changes,
               previousResult: prevResult,
@@ -150,6 +151,7 @@ function useJitterScope(scope) {
             if (hookEndEvent.arguments) {
               hookCall.arguments = hookEndEvent.arguments;
             }
+            scopes[scopeId].hookChanges.push(hookCall);
             callOnHookChange(hookCall);
           }
         }
@@ -158,6 +160,7 @@ function useJitterScope(scope) {
         return hookResult;
       },
       re: (renderResult) => {
+        callOnRender(scopes[scopeId]);
         return renderResult;
       }
     };
@@ -165,7 +168,7 @@ function useJitterScope(scope) {
   return hooks.current;
 }
 function reactJitter(options) {
-  var _a, _b, _c, _d;
+  var _a, _b, _c, _d, _e, _f;
   if (typeof window === "undefined") {
     return;
   }
@@ -173,8 +176,13 @@ function reactJitter(options) {
   windowGlobal.reactJitter = {
     enabled: (_b = (_a = windowGlobal.reactJitter) == null ? void 0 : _a.enabled) != null ? _b : options.enabled,
     onHookChange: (_d = (_c = windowGlobal.reactJitter) == null ? void 0 : _c.onHookChange) != null ? _d : options.onHookChange,
+    onRender: (_f = (_e = windowGlobal.reactJitter) == null ? void 0 : _e.onRender) != null ? _f : options.onRender,
     clear: () => {
-      Object.keys(scopes).forEach((key) => delete scopes[key]);
+      Object.keys(scopes).forEach((key) => {
+        scopes[key].renderCount = 0;
+        scopes[key].hookChanges = [];
+        scopes[key].hookResults = {};
+      });
     }
   };
 }
@@ -188,11 +196,21 @@ function callOnHookChange(hookResult) {
     window.reactJitter.onHookChange(hookResult);
   }
 }
+function shouldReportRender() {
+  var _a;
+  return typeof ((_a = window == null ? void 0 : window.reactJitter) == null ? void 0 : _a.onRender) === "function" && window.reactJitter.enabled;
+}
+function callOnRender(scope) {
+  var _a;
+  if (shouldReportRender() && ((_a = window.reactJitter) == null ? void 0 : _a.onRender)) {
+    window.reactJitter.onRender(scope);
+  }
+}
 function getScopeCount(scope) {
   if (!scopeCounter[scope.id]) {
     scopeCounter[scope.id] = 0;
   }
-  return scopeCounter[scope.id];
+  return scopeCounter[scope.id]++;
 }
 function compareChanges(prev, current) {
   if (prev !== "undefined" && prev !== current) {

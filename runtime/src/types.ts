@@ -26,6 +26,7 @@ export const HookChangeSchema = z.object({
 export const ReactJitterGlobalSchema = z.object({
   enabled: z.boolean().optional(),
   onHookChange: z.function().args(z.any()).returns(z.void()).optional(),
+  onRender: z.function().args(z.any()).returns(z.void()).optional(),
   clear: z.function().args().returns(z.void()).optional(),
 });
 
@@ -48,6 +49,13 @@ export type ReactJitterGlobal = z.infer<typeof ReactJitterGlobalSchema>;
 export type ReactJitterOptions = {
   enabled?: boolean;
   onHookChange?: (change: HookChange) => void;
+  onRender?: (
+    scope: Scope & {
+      scopeId: string;
+      hookResults: Record<string, unknown>;
+      renderCount: number;
+    },
+  ) => void;
 };
 
 export type Scope = z.infer<typeof ScopeSchema>;

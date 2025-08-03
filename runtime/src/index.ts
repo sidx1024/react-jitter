@@ -10,7 +10,6 @@ import { getChanges } from './utils/getChanges';
 
 type HookCall = HookChange &
   HookEndEvent & {
-    scopeId: string;
     scope: Scope;
     previousResult: unknown;
     currentResult: unknown;
@@ -18,7 +17,12 @@ type HookCall = HookChange &
 
 const scopes: Record<
   string,
-  Scope & { hookResults: Record<string, unknown>; renderCount: number }
+  Scope & {
+    hookResults: Record<string, unknown>;
+    renderCount: number;
+    scopeId: string;
+    hookChanges: HookCall[];
+  }
 > = {};
 
 const hookStack = new Map<string, unknown>();
@@ -30,6 +34,12 @@ declare global {
     reactJitter?: {
       enabled?: boolean;
       onHookChange?: (change: HookCall) => void;
+      onRender?: (
+        scope: Scope & {
+          hookResults: Record<string, unknown>;
+          renderCount: number;
+        },
+      ) => void;
       clear: () => void;
     };
   }
@@ -46,9 +56,11 @@ export function useJitterScope(scope: Scope) {
 
   if (!scopes[scopeId]) {
     scopes[scopeId] = {
+      scopeId,
       renderCount: 0,
       ...scope,
       hookResults: {},
+      hookChanges: [],
     };
   }
 
@@ -84,7 +96,6 @@ export function useJitterScope(scope: Scope) {
               line: hookEndEvent.line,
               offset: hookEndEvent.offset,
               id: hookEndEvent.id,
-              scopeId,
               scope,
               ...changes,
               previousResult: prevResult,
@@ -93,6 +104,7 @@ export function useJitterScope(scope: Scope) {
             if (hookEndEvent.arguments) {
               hookCall.arguments = hookEndEvent.arguments;
             }
+            scopes[scopeId].hookChanges.push(hookCall);
             callOnHookChange(hookCall);
           }
         }
@@ -103,7 +115,8 @@ export function useJitterScope(scope: Scope) {
         return hookResult;
       },
       re: <T>(renderResult: T): T => {
-        // Render end - currently passthrough, could add diffing logic here in the future
+        // Render end - call onRender callback with scope data
+        callOnRender(scopes[scopeId]);
         return renderResult;
       },
     };
@@ -124,8 +137,13 @@ export function reactJitter(options: ReactJitterOptions) {
     enabled: windowGlobal.reactJitter?.enabled ?? options.enabled,
     onHookChange:
       windowGlobal.reactJitter?.onHookChange ?? options.onHookChange,
+    onRender: windowGlobal.reactJitter?.onRender ?? options.onRender,
     clear: () => {
-      Object.keys(scopes).forEach((key) => delete scopes[key]);
+      Object.keys(scopes).forEach((key) => {
+        scopes[key].renderCount = 0;
+        scopes[key].hookChanges = [];
+        scopes[key].hookResults = {};
+      });
     },
   };
 }
@@ -143,12 +161,30 @@ function callOnHookChange(hookResult: HookCall) {
   }
 }
 
+function shouldReportRender() {
+  return (
+    typeof window?.reactJitter?.onRender === 'function' &&
+    window.reactJitter.enabled
+  );
+}
+
+function callOnRender(
+  scope: Scope & {
+    hookResults: Record<string, unknown>;
+    renderCount: number;
+  },
+) {
+  if (shouldReportRender() && window.reactJitter?.onRender) {
+    window.reactJitter.onRender(scope);
+  }
+}
+
 function getScopeCount(scope: Scope) {
   if (!scopeCounter[scope.id]) {
     scopeCounter[scope.id] = 0;
   }
 
-  return scopeCounter[scope.id];
+  return scopeCounter[scope.id]++;
 }
 
 function compareChanges(prev: unknown, current: unknown) {
