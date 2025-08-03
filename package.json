@@ -17,6 +17,16 @@
   },
   "main": "plugin-swc/swc_plugin_react_jitter.wasm",
   "types": "./index.d.ts",
+  "typesVersions": {
+    "*": {
+      "runtime": [
+        "runtime/dist/index.d.ts"
+      ],
+      "runtime/*": [
+        "runtime/dist/*"
+      ]
+    }
+  },
   "files": [
     "index.d.ts",
     "plugin-swc/swc_plugin_react_jitter.wasm",
@@ -65,9 +75,6 @@
     "runtime",
     "plugin-swc"
   ],
-  "engines": {
-    "node": ">=24"
-  },
   "preferUnplugged": true,
   "dependencies": {
     "@swc/counter": "^0.1.3"
