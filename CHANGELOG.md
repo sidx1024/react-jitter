@@ -1,5 +1,11 @@
 # react-jitter
 
+## 0.3.0
+
+### Minor Changes
+
+- 6192315: Add support for onRender and other fixes
+
 ## 0.2.0
 
 ### Minor Changes
