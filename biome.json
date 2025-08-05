@@ -5,14 +5,26 @@
     "enabled": true,
     "rules": {
       "recommended": true
-    }
+    },
+    "includes": [
+      "**",
+      "!**/runtime/dist/**",
+      "!**/node_modules/**",
+      "!**/target/**"
+    ]
   },
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 80
+    "lineWidth": 80,
+    "includes": [
+      "**",
+      "!**/runtime/dist/**",
+      "!**/node_modules/**",
+      "!**/target/**"
+    ]
   },
   "javascript": {
     "formatter": {
@@ -20,7 +32,12 @@
     }
   },
   "files": {
-    "includes": ["**", "!**/plugin-swc/target", "!**/runtime/dist"]
+    "includes": [
+      "**",
+      "!**/plugin-swc/target",
+      "!**/runtime/dist",
+      "!transform"
+    ]
   },
   "overrides": [
     {

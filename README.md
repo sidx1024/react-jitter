@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/react-jitter.svg)](https://badge.fury.io/js/react-jitter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-React Jitter is a developer tool to help you understand why your React components re-render. It pinpoints the exact hooks and values that have changed, so you can optimize your application''s performance with precision.
+React Jitter is a developer tool to help you understand why your React components re-render. It pinpoints the exact hooks and values that have changed, so you can optimize your application's performance with precision.
 
 ## Table of Contents
 
@@ -19,14 +19,11 @@ React Jitter is a developer tool to help you understand why your React component
 
 ## Motivation
 
-Unnecessary re-renders are a common source of performance issues in React applications. When a component re-renders, it can be difficult to trace the root cause. Was it a state change? A new prop value? A context update? React''s developer tools can tell you that a component re-rendered, but not always why.
+Unnecessary re-renders are a common source of performance issues in React applications. When a component re-renders, it can be difficult to trace the root cause. React Profiler reports "Hook 7 changed" but not the name of hook or what exactly changed. It also does not provide anything useful for context changes and it just says "Context changed".
 
-Existing tools like `why-did-you-render` require you to manually whitelist the hooks and components you want to track. This is impractical in large codebases where you want to monitor everything without tedious configuration. Others, like `react-scan`, are excellent for a high-level overview but don''t pinpoint the exact cause of a re-render. Even the official React Profiler can be frustrating when it reports anonymous hooks or contexts.
+Existing tools like `why-did-you-render` require you to manually whitelist the hooks and components you want to track. This is impractical in large codebases where you want to monitor everything without tedious configuration. Others, like `react-scan`, are excellent for a high-level overview but does not report hook changes.
 
-React Jitter solves these problems by instrumenting your code at build time with a lightweight SWC plugin. This approach has minimal performance overhead and requires no changes to your component code. It tells you the exact hook that caused a re-render and shows you the previous and current values so you can see exactly what changed.
-
-- **Precise**: Know the exact hook and value that triggered a re-render.
-- **Easy to Use**: No changes to your code are required.
+React Jitter solves these problems by instrumenting your code at build time with an SWC plugin. It tells you the exact hook that caused a re-render and shows you the previous and current values so you can see exactly what changed.
 
 ## Getting Started
 
@@ -93,15 +90,19 @@ import { reactJitter } from "react-jitter/runtime";
 if (process.env.NODE_ENV === "development") {
   reactJitter({
     enabled: true,
-    // This function will be called whenever a hook's value changes.
+    // This function is called whenever a hook's value changes.
     onHookChange: (change) => {
       console.log("Hook changed:", change);
     },
+    // This function is called after a component finishes rendering.
+    onRender: (render) => {
+      console.log("Component rendered:", render);
+    }
   });
 }
 ```
 
-You can also change `enabled` and `onHookChange` at runtime from your browser's developer console. This is useful for temporarily disabling logging or changing the callback behavior without a full page reload.
+You can also change `enabled`, `onHookChange`, and `onRender` at runtime from your browser's developer console. This is useful for temporarily disabling logging or changing the callback behavior without a full page reload.
 
 ```js
 // Disable React Jitter
@@ -116,15 +117,25 @@ window.reactJitter.onHookChange = (change) => {
     console.warn("Unstable hook value:", change);
   }
 };
+
+// Change the onRender callback
+window.reactJitter.onRender = (render) => {
+  if (render.renderCount > 10) {
+    console.warn("High render count:", render);
+  }
+}
 ```
 
 Modern bundlers will tree-shake the `import` and the function call from your production build, so it will have zero performance impact.
 
 ## API and Configuration
 
-The `reactJitter` function accepts a single `onHookChange` callback that receives a `change` object whenever a hook''s value changes.
+The `reactJitter` function accepts a configuration object with two callbacks: `onHookChange` and `onRender`.
 
-Here is an example of the `change` object when an unstable object is detected:
+- `onHookChange`: Called whenever a hook's value changes. It receives a `change` object with details about the hook, its location, and the value that changed.
+- `onRender`: Called after a component finishes rendering. It receives a `render` object with metadata about the component's render cycle.
+
+Here is an example of the `change` object from `onHookChange` when an unstable object is detected:
 
 ```json
 {
@@ -154,6 +165,60 @@ Here is an example of the `change` object when an unstable object is detected:
 
 In this case, the `address` object was re-created, causing an unstable reference even though its contents are the same.
 
+Here is an example of the `render` object from `onRender`:
+
+```json
+{
+  "scopeId": "UserProfile-0",
+  "renderCount": 5,
+  "name": "UserProfile",
+  "id": "UserProfile",
+  "file": "/src/components/UserProfile.tsx",
+  "line": 8,
+  "offset": 1,
+  "hookResults": {
+    "4f23ef0": {
+      "id": "user-123",
+      "address": { "street": "123 Main St" }
+    }
+  }
+}
+```
+
+This object provides the component's unique instance ID, its render count, location metadata, and a map of all hook results for the current render.
+
+You can use the `includeArguments` option to identify which context has changed. When `includeArguments` is set to `true` in the SWC plugin configuration, the `onHookChange` callback will include the arguments passed to the hook. This is especially useful for `useContext`, as it allows you to see which context was used.
+
+Here is an example of the `change` object when `includeArguments` is enabled:
+
+```json
+{
+  "hook": "useContext",
+  "arguments": ["UserContext"],
+  "file": "/src/components/UserProfile.tsx",
+  "line": 12,
+  "offset": 18,
+  "scope": {
+    "name": "UserProfile",
+    "file": "/src/components/UserProfile.tsx",
+    "line": 8,
+    "offset": 1
+  },
+  "unstable": false,
+  "unstableKeys": [],
+  "changedKeys": ["user"],
+  "previousResult": {
+    "user": { "name": "John" }
+  },
+  "currentResult": {
+    "user": { "name": "Jane" }
+  }
+}
+```
+
+In this example, the `arguments` field shows that the `UserContext` was used, and the `changedKeys` field shows that the `user` property has changed.
+
+
 ## How It Works
 
 React Jitter is composed of two parts:
@@ -161,7 +226,7 @@ React Jitter is composed of two parts:
 1.  **SWC Plugin**: A plugin for the [SWC compiler](httpss://swc.rs) that transforms your code to add instrumentation. It finds your React components and wraps your hook calls with a light monitoring function.
 2.  **Runtime**: A small runtime library that is injected into your components. It keeps track of the values returned by your hooks and, when they change, it reports the differences.
 
-One of the most common causes of unnecessary re-renders is "unstable" objects and functions that are re-created on every render. `react-jitter` helps you identify these issues by tracking when a value''s reference changes and reporting it to you.
+One of the most common causes of unnecessary re-renders is "unstable" objects and functions that are re-created on every render. `react-jitter` helps you identify these issues by tracking when a value's reference changes and reporting it to you.
 
 ## Limitations
 

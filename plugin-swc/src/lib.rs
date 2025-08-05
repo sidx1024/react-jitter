@@ -276,6 +276,21 @@ impl JitterTransform {
         })));
         body.stmts.insert(0, h_decl);
     }
+
+    fn wrap_in_h_re(&self, expr: Box<Expr>) -> Box<Expr> {
+        Box::new(Expr::Call(CallExpr {
+            span: expr.span(),
+            callee: MemberExpr {
+                span: DUMMY_SP,
+                obj: Box::new(Expr::Ident(quote_ident!("h").into())),
+                prop: MemberProp::Ident(quote_ident!("re")),
+            }
+            .as_callee(),
+            args: vec![expr.as_arg()],
+            type_args: None,
+            ctxt: SyntaxContext::empty(),
+        }))
+    }
 }
 
 impl VisitMut for JitterTransform {
@@ -494,7 +509,7 @@ impl VisitMut for JitterTransform {
                                                             h_decl_stmt,
                                                             Stmt::Return(ReturnStmt {
                                                                 span: expr.span(),
-                                                                arg: Some(expr.clone()),
+                                                                arg: Some(self.wrap_in_h_re(expr.clone())),
                                                             }),
                                                         ],
                                                         ctxt: SyntaxContext::empty(),
@@ -675,6 +690,45 @@ impl VisitMut for JitterTransform {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    fn visit_mut_return_stmt(&mut self, n: &mut ReturnStmt) {
+        // First recurse.
+        n.visit_mut_children_with(self);
+
+        // Only touch code while we're inside a component.
+        if self.current_component.is_none() {
+            return;
+        }
+
+        // Only wrap `return <expr>;`
+        if let Some(arg) = &mut n.arg {
+            // Avoid double‑wrapping.
+            let already_wrapped = if let Expr::Call(CallExpr {
+                callee: Callee::Expr(callee_expr),
+                ..
+            }) = &**arg {
+                if let Expr::Member(MemberExpr {
+                    obj,
+                    prop: MemberProp::Ident(prop_ident),
+                    ..
+                }) = &**callee_expr {
+                    if let Expr::Ident(obj_ident) = &**obj {
+                        obj_ident.sym == *"h" && prop_ident.sym == *"re"
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            
+            if !already_wrapped {
+                *arg = self.wrap_in_h_re(arg.clone());
             }
         }
     }

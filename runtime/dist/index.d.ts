@@ -44,6 +44,11 @@ type HookEndEvent = {
 type ReactJitterOptions = {
     enabled?: boolean;
     onHookChange?: (change: HookChange) => void;
+    onRender?: (scope: Scope & {
+        scopeId: string;
+        hookResults: Record<string, unknown>;
+        renderCount: number;
+    }) => void;
 };
 type Scope = z.infer<typeof ScopeSchema>;
 
@@ -57,6 +62,10 @@ declare global {
         reactJitter?: {
             enabled?: boolean;
             onHookChange?: (change: HookCall) => void;
+            onRender?: (scope: Scope & {
+                hookResults: Record<string, unknown>;
+                renderCount: number;
+            }) => void;
             clear: () => void;
         };
     }
@@ -69,6 +78,7 @@ declare global {
 declare function useJitterScope(scope: Scope): {
     s: (id: string) => void;
     e: (hookResult: unknown, hookEndEvent: HookEndEvent) => unknown;
+    re: <T>(renderResult: T) => T;
 };
 declare function reactJitter(options: ReactJitterOptions): void;
 
