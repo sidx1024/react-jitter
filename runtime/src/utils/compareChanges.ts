@@ -13,10 +13,12 @@ export function compareChanges(
     try {
       return getChanges(prev, current, comparator);
     } catch (error: unknown) {
+      // Extract error message regardless of error type
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const isRecursionError =
-        error instanceof Error &&
         /(?:maximum call stack(?: size)? exceeded|too much recursion|stack overflow)/i.test(
-          String(error?.message),
+          errorMessage,
         );
 
       if (isRecursionError && comparator !== 'circularDeepEqual') {

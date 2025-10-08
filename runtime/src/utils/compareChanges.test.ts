@@ -69,11 +69,15 @@ describe('compareChanges', () => {
   });
 
   test('throws enhanced error for stack overflow with deepEqual', () => {
-    const deep = (d: number): unknown =>
-      d === 0 ? { v: 1 } : { nested: deep(d - 1) };
+    const obj1 = { value: 1 } as Record<string, unknown>;
+    obj1.self = obj1;
+
+    const obj2 = { value: 1 } as Record<string, unknown>;
+    obj2.self = obj2;
 
     try {
-      compareChanges(hookAddress, deep(10000), deep(10000));
+      compareChanges(hookAddress, obj1, obj2);
+      throw new Error('Expected compareChanges to throw an error');
     } catch (error) {
       expect((error as Error).message).toContain('Maximum call stack');
       expect((error as Error).message).toContain('circularDeepEqual');
@@ -88,11 +92,14 @@ describe('compareChanges', () => {
       reactJitter: { selectComparator },
     } as unknown as typeof globalThis.window;
 
-    const deep = (d: number): unknown =>
-      d === 0 ? { v: 1 } : { nested: deep(d - 1) };
+    const obj1 = { value: 1 } as Record<string, unknown>;
+    obj1.self = obj1;
+
+    const obj2 = { value: 1 } as Record<string, unknown>;
+    obj2.self = obj2;
 
     try {
-      compareChanges(hookAddress, deep(10000), deep(10000));
+      compareChanges(hookAddress, obj1, obj2);
     } catch (error) {
       expect((error as Error).message).not.toContain('circularDeepEqual');
     }

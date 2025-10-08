@@ -486,8 +486,9 @@ function compareChanges(hookAddress, prev, current) {
     try {
       return getChanges(prev, current, comparator);
     } catch (error) {
-      const isRecursionError = error instanceof Error && /(?:maximum call stack(?: size)? exceeded|too much recursion|stack overflow)/i.test(
-        String(error == null ? void 0 : error.message)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isRecursionError = /(?:maximum call stack(?: size)? exceeded|too much recursion|stack overflow)/i.test(
+        errorMessage
       );
       if (isRecursionError && comparator !== "circularDeepEqual") {
         throw new Error(
