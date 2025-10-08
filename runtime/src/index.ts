@@ -1,12 +1,14 @@
 import type {
   HookChange,
   HookEndEvent,
+  HookAddress,
   ReactJitterOptions,
   Scope,
+  Comparator,
 } from './types';
 
 import React from 'react';
-import { getChanges } from './utils/getChanges';
+import { compareChanges } from './utils/compareChanges';
 
 type HookCall = HookChange &
   HookEndEvent & {
@@ -34,6 +36,7 @@ declare global {
     reactJitter?: {
       enabled?: boolean;
       onHookChange?: (change: HookCall) => void;
+      selectComparator?: (hookAddress: HookAddress) => Comparator;
       onRender?: (
         scope: Scope & {
           hookResults: Record<string, unknown>;
@@ -88,7 +91,13 @@ export function useJitterScope(scope: Scope) {
 
         if (shouldReportChanges()) {
           const prevResult = currentScope.hookResults[hookId];
-          const changes = compareChanges(prevResult, hookResult);
+          const hookAddress = {
+            hook: hookEndEvent.hook,
+            file: hookEndEvent.file,
+            line: hookEndEvent.line,
+            offset: hookEndEvent.offset,
+          };
+          const changes = compareChanges(hookAddress, prevResult, hookResult);
           if (changes) {
             const hookCall: HookCall = {
               hook: hookEndEvent.hook,
@@ -185,12 +194,4 @@ function getScopeCount(scope: Scope) {
   }
 
   return scopeCounter[scope.id]++;
-}
-
-function compareChanges(prev: unknown, current: unknown) {
-  if (prev !== 'undefined' && prev !== current) {
-    return getChanges(prev, current);
-  }
-
-  return null;
 }

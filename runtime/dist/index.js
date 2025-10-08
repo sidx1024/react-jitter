@@ -447,7 +447,8 @@ function createCustomEqual(options) {
 }
 
 // src/utils/getChanges.ts
-function getChanges(prev, next) {
+function getChanges(prev, next, comparator = "deepEqual") {
+  const equals = comparator === "circularDeepEqual" ? circularDeepEqual : deepEqual;
   const changedKeys = [];
   const unstableKeys = [];
   const isObject = (v) => v !== null && typeof v === "object";
@@ -466,7 +467,7 @@ function getChanges(prev, next) {
     }
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      const deepEqItem = deepEqual(prev[i], next[i]);
+      const deepEqItem = equals(prev[i], next[i]);
       const refDiffItem = isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i];
       if (!deepEqItem || refDiffItem) {
         const key = String(i);
@@ -479,7 +480,7 @@ function getChanges(prev, next) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = /* @__PURE__ */ new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      const deepEqProp = deepEqual(prev[key], next[key]);
+      const deepEqProp = equals(prev[key], next[key]);
       const refDiffProp = isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key];
       if (!deepEqProp || refDiffProp) {
         changedKeys.push(key);
@@ -489,7 +490,7 @@ function getChanges(prev, next) {
       }
     }
   } else {
-    const deepEqRoot = deepEqual(prev, next);
+    const deepEqRoot = equals(prev, next);
     const refDiffRoot = isObject(prev) && isObject(next) && prev !== next;
     const unstable = refDiffRoot && deepEqRoot;
     const changed = !deepEqRoot || refDiffRoot;
@@ -500,7 +501,7 @@ function getChanges(prev, next) {
     };
   }
   const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
-  const unstableRoot = isPlainObject(prev) && isPlainObject(next) && prev !== next && deepEqual(prev, next);
+  const unstableRoot = isPlainObject(prev) && isPlainObject(next) && prev !== next && equals(prev, next);
   if (unstableRoot && changedKeys.length === 0) {
     changedKeys.push("");
     unstableKeys.push("");
@@ -510,6 +511,31 @@ function getChanges(prev, next) {
     unstableKeys,
     changedKeys
   };
+}
+
+// src/utils/compareChanges.ts
+function compareChanges(hookAddress, prev, current) {
+  var _a, _b, _c;
+  if (prev !== "undefined" && prev !== current) {
+    const comparator = (_c = (_b = (_a = window == null ? void 0 : window.reactJitter) == null ? void 0 : _a.selectComparator) == null ? void 0 : _b.call(_a, hookAddress)) != null ? _c : "deepEqual";
+    try {
+      return getChanges(prev, current, comparator);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isRecursionError = /(?:maximum call stack(?: size)? exceeded|too much recursion|stack overflow)/i.test(
+        errorMessage
+      );
+      if (isRecursionError && comparator !== "circularDeepEqual") {
+        throw new Error(
+          `Maximum call stack size exceeded. Please use the "circularDeepEqual" comparator with selectComparator option. 
+Hook address: ${JSON.stringify(hookAddress, null, 2)}.`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
+  }
+  return null;
 }
 
 // src/index.ts
@@ -544,7 +570,13 @@ function useJitterScope(scope) {
         const hookId = `${scopeId}-${hookEndEvent.id}`;
         if (shouldReportChanges()) {
           const prevResult = currentScope.hookResults[hookId];
-          const changes = compareChanges(prevResult, hookResult);
+          const hookAddress = {
+            hook: hookEndEvent.hook,
+            file: hookEndEvent.file,
+            line: hookEndEvent.line,
+            offset: hookEndEvent.offset
+          };
+          const changes = compareChanges(hookAddress, prevResult, hookResult);
           if (changes) {
             const hookCall = {
               hook: hookEndEvent.hook,
@@ -620,12 +652,6 @@ function getScopeCount(scope) {
     scopeCounter[scope.id] = 0;
   }
   return scopeCounter[scope.id]++;
-}
-function compareChanges(prev, current) {
-  if (prev !== "undefined" && prev !== current) {
-    return getChanges(prev, current);
-  }
-  return null;
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

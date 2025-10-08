@@ -44,6 +44,11 @@ export type HookEndEvent = {
   arguments?: string[];
 };
 
+export type HookAddress = Pick<
+  HookEndEvent,
+  'hook' | 'file' | 'line' | 'offset' | 'arguments'
+>;
+
 export type ReactJitterGlobal = z.infer<typeof ReactJitterGlobalSchema>;
 
 export type ReactJitterOptions = {
@@ -59,3 +64,5 @@ export type ReactJitterOptions = {
 };
 
 export type Scope = z.infer<typeof ScopeSchema>;
+
+export type Comparator = 'deepEqual' | 'circularDeepEqual';

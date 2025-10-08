@@ -128,6 +128,44 @@ window.reactJitter.onRender = (render) => {
 
 Modern bundlers will tree-shake the `import` and the function call from your production build, so it will have zero performance impact.
 
+### Advanced: Custom Comparator Selection
+
+By default, React Jitter uses the `deepEqual` comparator to detect changes in hook values. However, you can customize which comparator is used on a per-hook basis using the `selectComparator` function. This is useful when dealing with circular data structures or when you need different comparison strategies for different hooks.
+
+```js
+// Set a custom comparator selector
+window.reactJitter.selectComparator = (hookAddress) => {
+  // Use circularDeepEqual for hooks that might return circular structures
+  if (hookAddress.hook === 'useSelector' || hookAddress.hook === 'useReduxState') {
+    return 'circularDeepEqual';
+  }
+  
+  // Use deepEqual for everything else (default)
+  return 'deepEqual';
+};
+```
+
+The `hookAddress` parameter contains information about the hook:
+
+```typescript
+{
+  hook: string;        // Hook name, e.g., "useState", "useContext"
+  file: string;        // File path where the hook is called
+  line: number;        // Line number
+  offset: number;      // Column offset
+  arguments?: string[]; // Hook arguments (if includeArguments is enabled)
+}
+```
+
+**Available Comparators:**
+
+- `deepEqual` (default): Fast deep equality check that handles most cases. Will throw an error if it encounters deeply nested or circular structures.
+- `circularDeepEqual`: Slower but handles circular references safely. Use this when your hooks return data with circular dependencies or extremely deep nesting.
+
+**When to Use `circularDeepEqual`:**
+
+If you see an error like "Maximum call stack size exceeded. Please use the 'circularDeepEqual' comparator", you should configure `selectComparator` to return `'circularDeepEqual'` for the specific hook mentioned in the error message.
+
 ## API and Configuration
 
 The `reactJitter` function accepts a configuration object with two callbacks: `onHookChange` and `onRender`.

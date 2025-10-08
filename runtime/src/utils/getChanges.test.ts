@@ -176,4 +176,26 @@ describe('getChanges', () => {
       changedKeys: ['user', 'todos'],
     });
   });
+
+  test('handles circular objects', () => {
+    const prev = { value: 1 } as Record<string, unknown>;
+    prev.self = prev;
+
+    const next = { value: 1 } as Record<string, unknown>;
+    next.self = next;
+
+    // Different references but same circular structure
+    expect(getChanges(prev, next, 'circularDeepEqual')).toEqual({
+      unstable: true,
+      unstableKeys: ['self'],
+      changedKeys: ['self'],
+    });
+
+    // Same reference circular object
+    expect(getChanges(prev, prev, 'circularDeepEqual')).toEqual({
+      unstable: false,
+      unstableKeys: [],
+      changedKeys: [],
+    });
+  });
 });
