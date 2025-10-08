@@ -1,6 +1,13 @@
-import { deepEqual } from 'fast-equals';
+import { deepEqual, circularDeepEqual } from 'fast-equals';
+import type { Comparator } from '../types';
 
-export function getChanges(prev: unknown, next: unknown) {
+export function getChanges(
+  prev: unknown,
+  next: unknown,
+  comparator: Comparator = 'deepEqual',
+) {
+  const equals =
+    comparator === 'circularDeepEqual' ? circularDeepEqual : deepEqual;
   const changedKeys = [];
   const unstableKeys = [];
   const isObject = (v: unknown): v is Record<string, unknown> =>
@@ -26,7 +33,7 @@ export function getChanges(prev: unknown, next: unknown) {
 
     const max = Math.max(prev.length, next.length);
     for (let i = 0; i < max; i++) {
-      const deepEqItem = deepEqual(prev[i], next[i]);
+      const deepEqItem = equals(prev[i], next[i]);
       const refDiffItem =
         isObject(prev[i]) && isObject(next[i]) && prev[i] !== next[i];
       if (!deepEqItem || refDiffItem) {
@@ -42,7 +49,7 @@ export function getChanges(prev: unknown, next: unknown) {
   } else if (isObject(prev) && isObject(next)) {
     const allKeys = new Set([...Object.keys(prev), ...Object.keys(next)]);
     for (const key of allKeys) {
-      const deepEqProp = deepEqual(prev[key], next[key]);
+      const deepEqProp = equals(prev[key], next[key]);
       const refDiffProp =
         isObject(prev[key]) && isObject(next[key]) && prev[key] !== next[key];
       if (!deepEqProp || refDiffProp) {
@@ -55,7 +62,7 @@ export function getChanges(prev: unknown, next: unknown) {
 
     // primitives (or mismatched types other than array↔object)
   } else {
-    const deepEqRoot = deepEqual(prev, next);
+    const deepEqRoot = equals(prev, next);
     const refDiffRoot = isObject(prev) && isObject(next) && prev !== next;
     const unstable = refDiffRoot && deepEqRoot;
     const changed = !deepEqRoot || refDiffRoot;
@@ -73,7 +80,7 @@ export function getChanges(prev: unknown, next: unknown) {
     isPlainObject(prev) &&
     isPlainObject(next) &&
     prev !== next &&
-    deepEqual(prev, next);
+    equals(prev, next);
 
   if (unstableRoot && changedKeys.length === 0) {
     // For plain object reference change, ensure root sentinel marks both changed and unstable

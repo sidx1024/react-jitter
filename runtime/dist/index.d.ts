@@ -41,6 +41,7 @@ type HookEndEvent = {
     offset: number;
     arguments?: string[];
 };
+type HookAddress = Pick<HookEndEvent, 'hook' | 'file' | 'line' | 'offset' | 'arguments'>;
 type ReactJitterOptions = {
     enabled?: boolean;
     onHookChange?: (change: HookChange) => void;
@@ -51,6 +52,7 @@ type ReactJitterOptions = {
     }) => void;
 };
 type Scope = z.infer<typeof ScopeSchema>;
+type Comparator = 'deepEqual' | 'circularDeepEqual';
 
 type HookCall = HookChange & HookEndEvent & {
     scope: Scope;
@@ -62,6 +64,7 @@ declare global {
         reactJitter?: {
             enabled?: boolean;
             onHookChange?: (change: HookCall) => void;
+            selectComparator?: (hookAddress: HookAddress) => Comparator;
             onRender?: (scope: Scope & {
                 hookResults: Record<string, unknown>;
                 renderCount: number;
