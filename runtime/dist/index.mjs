@@ -557,6 +557,9 @@ function useJitterScope(scope) {
             if (hookEndEvent.arguments) {
               hookCall.arguments = hookEndEvent.arguments;
             }
+            if (hookEndEvent.isMocked) {
+              hookCall.isMocked = hookEndEvent.isMocked;
+            }
             scopes[scopeId].hookChanges.push(hookCall);
             callOnHookChange(hookCall);
           }

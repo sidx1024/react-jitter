@@ -40,6 +40,7 @@ type HookEndEvent = {
     line: number;
     offset: number;
     arguments?: string[];
+    isMocked?: boolean;
 };
 type HookAddress = Pick<HookEndEvent, 'hook' | 'file' | 'line' | 'offset' | 'arguments'>;
 type ReactJitterOptions = {

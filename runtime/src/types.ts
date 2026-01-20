@@ -42,6 +42,7 @@ export type HookEndEvent = {
   line: number;
   offset: number;
   arguments?: string[];
+  isMocked?: boolean;
 };
 
 export type HookAddress = Pick<

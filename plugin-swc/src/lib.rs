@@ -11,6 +11,8 @@ use swc_core::plugin::{
 use swc_ecma_ast::*;
 use swc_ecma_utils::{quote_ident, ExprFactory};
 use swc_ecma_visit::{Visit, VisitMut, VisitMutWith, VisitWith};
+mod mock_detection;
+use crate::mock_detection::build_is_mocked_expr;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
@@ -601,6 +603,10 @@ impl VisitMut for JitterTransform {
                                         }))),
                                     }))),
                                 ];
+                                hook_meta_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                    key: PropName::Ident(quote_ident!("isMocked")),
+                                    value: Box::new(build_is_mocked_expr(id)),
+                                }))));
 
                             if self.include_arguments {
                                 let mut args_vec = Vec::new();

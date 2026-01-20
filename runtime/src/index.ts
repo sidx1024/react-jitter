@@ -113,6 +113,9 @@ export function useJitterScope(scope: Scope) {
             if (hookEndEvent.arguments) {
               hookCall.arguments = hookEndEvent.arguments;
             }
+            if (hookEndEvent.isMocked) {
+              hookCall.isMocked = hookEndEvent.isMocked;
+            }
             scopes[scopeId].hookChanges.push(hookCall);
             callOnHookChange(hookCall);
           }
