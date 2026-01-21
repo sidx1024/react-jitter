@@ -83,6 +83,7 @@ declare function useJitterScope(scope: Scope): {
     s: (id: string) => void;
     e: (hookResult: unknown, hookEndEvent: HookEndEvent) => unknown;
     re: <T>(renderResult: T) => T;
+    m: (value: unknown) => boolean;
 };
 declare function reactJitter(options: ReactJitterOptions): void;
 

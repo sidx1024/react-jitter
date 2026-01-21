@@ -73,6 +73,7 @@ export function useJitterScope(scope: Scope) {
     s: (id: string) => void;
     e: (hookResult: unknown, hookEndEvent: HookEndEvent) => unknown;
     re: <T>(renderResult: T) => T;
+    m: (value: unknown) => boolean;
   } | null>(null);
 
   if (!hooks.current) {
@@ -130,6 +131,12 @@ export function useJitterScope(scope: Scope) {
         // Render end - call onRender callback with scope data
         callOnRender(scopes[scopeId]);
         return renderResult;
+      },
+      m: (value: unknown): boolean => {
+        if (typeof value !== 'function') {
+          return false;
+        }
+        return 'mockImplementation' in value || 'mockReturnValue' in value;
       },
     };
   }

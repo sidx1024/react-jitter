@@ -571,6 +571,12 @@ function useJitterScope(scope) {
       re: (renderResult) => {
         callOnRender(scopes[scopeId]);
         return renderResult;
+      },
+      m: (value) => {
+        if (typeof value !== "function") {
+          return false;
+        }
+        return "mockImplementation" in value || "mockReturnValue" in value;
       }
     };
   }
