@@ -1,5 +1,11 @@
 # react-jitter-runtime
 
+## 0.5.0
+
+### Minor Changes
+
+- 79806d0: Adds support for detecting mocked hooks when using react-jitter in a testing environment
+
 ## 0.4.0
 
 ### Minor Changes
