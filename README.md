@@ -256,6 +256,33 @@ Here is an example of the `change` object when `includeArguments` is enabled:
 
 In this example, the `arguments` field shows that the `UserContext` was used, and the `changedKeys` field shows that the `user` property has changed.
 
+### Detecting Unstable Hooks in Unit Tests
+
+React Jitter can also be a powerful tool for improving code quality within your unit tests.
+
+You can leverage this to write tests that fail if a hook becomes unstable, catching performance regressions early in the a testing setup where you might initialize React Jitter in a global setup file, you can easily override the `onHookChange` handler on a per-test basis.
+
+```javascript
+// Example of a Vitest/Jest test
+it('should not have unstable hooks', () => {
+  const unstableChanges = [];
+  // Initialize React Jitter in a global setup file (e.g., setupTests.js)
+  // Then, override the onHookChange handler for specific tests.
+  window.reactJitter.onHookChange = (change) => {
+    // You can ignore mocked hooks or handle them specifically
+    if (change.unstable && !change.isMocked) {
+      unstableChanges.push(change);
+    }
+  };
+
+  render(<MyComponent />);
+
+  // Assert that no unstable values were detected during the render
+  expect(unstableChanges).toHaveLength(0);
+});
+```
+
+The `onHookChange` callback's `change` object includes an `isMocked` boolean property. This is automatically set to `true` if React Jitter detects that the hook has been mocked (e.g., using `jest.fn()` or `vi.fn()`). This allows you to reliably identify and assert against unstable values in your test environment.
 
 ## How It Works
 

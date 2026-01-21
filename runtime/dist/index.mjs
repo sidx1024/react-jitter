@@ -557,6 +557,9 @@ function useJitterScope(scope) {
             if (hookEndEvent.arguments) {
               hookCall.arguments = hookEndEvent.arguments;
             }
+            if (hookEndEvent.isMocked) {
+              hookCall.isMocked = hookEndEvent.isMocked;
+            }
             scopes[scopeId].hookChanges.push(hookCall);
             callOnHookChange(hookCall);
           }
@@ -568,6 +571,12 @@ function useJitterScope(scope) {
       re: (renderResult) => {
         callOnRender(scopes[scopeId]);
         return renderResult;
+      },
+      m: (value) => {
+        if (typeof value !== "function") {
+          return false;
+        }
+        return "mockImplementation" in value || "mockReturnValue" in value;
       }
     };
   }

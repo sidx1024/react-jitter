@@ -601,6 +601,21 @@ impl VisitMut for JitterTransform {
                                         }))),
                                     }))),
                                 ];
+                                hook_meta_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                    key: PropName::Ident(quote_ident!("isMocked")),
+                                    value: Box::new(Expr::Call(CallExpr {
+                                        span: DUMMY_SP,
+                                        callee: MemberExpr {
+                                            span: DUMMY_SP,
+                                            obj: Box::new(Expr::Ident(quote_ident!("h").into())),
+                                            prop: MemberProp::Ident(quote_ident!("m")),
+                                        }
+                                        .as_callee(),
+                                        args: vec![id.clone().as_arg()],
+                                        type_args: None,
+                                        ctxt: SyntaxContext::empty(),
+                                    })),
+                                }))));
 
                             if self.include_arguments {
                                 let mut args_vec = Vec::new();

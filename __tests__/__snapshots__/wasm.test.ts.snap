@@ -18,6 +18,7 @@ export default function UserForm() {
         hook: "useFieldValues",
         line: 5,
         offset: 26,
+        isMocked: h.m(useFieldValues),
         arguments: [
             "'name'"
         ]
@@ -28,6 +29,7 @@ export default function UserForm() {
         hook: "useFieldValues",
         line: 6,
         offset: 29,
+        isMocked: h.m(useFieldValues),
         arguments: [
             "'city'",
             "'state'"
@@ -54,7 +56,8 @@ export default function() {
         file: "3_anonymous_function.tsx",
         hook: "useFieldValues",
         line: 2,
-        offset: 22
+        offset: 22,
+        isMocked: h.m(useFieldValues)
     }));
     return /*#__PURE__*/ h.re(React.createElement("div", null));
 }"
