@@ -1,5 +1,11 @@
 # react-jitter
 
+## 0.6.0
+
+### Minor Changes
+
+- cf69a52: Upgrade swc_core from 27.0.6 to 47.0.2 for compatibility with @swc/core 1.15.x
+
 ## 0.5.0
 
 ### Minor Changes
