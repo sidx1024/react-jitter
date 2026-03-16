@@ -3,14 +3,13 @@ use std::collections::HashSet;
 use glob::Pattern;
 use swc_core::common::errors::SourceMapper;
 use swc_core::common::{Loc, Span, Spanned, SyntaxContext, DUMMY_SP};
-use swc_core::ecma::ast::Program;
+use swc_core::ecma::ast::*;
+use swc_core::ecma::utils::{quote_ident, ExprFactory};
+use swc_core::ecma::visit::{Visit, VisitMut, VisitMutWith, VisitWith};
 use swc_core::plugin::{
     metadata::TransformPluginMetadataContextKind, plugin_transform, proxies::PluginSourceMapProxy,
     proxies::TransformPluginProgramMetadata,
 };
-use swc_ecma_ast::*;
-use swc_ecma_utils::{quote_ident, ExprFactory};
-use swc_ecma_visit::{Visit, VisitMut, VisitMutWith, VisitWith};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
@@ -213,7 +212,7 @@ impl JitterTransform {
                 key: PropName::Ident(quote_ident!("name")),
                 value: Box::new(Expr::Lit(Lit::Str(Str {
                     span: DUMMY_SP,
-                    value: component_ident.sym.clone(),
+                    value: component_ident.sym.clone().into(),
                     raw: None,
                 }))),
             }))),
@@ -449,7 +448,7 @@ impl VisitMut for JitterTransform {
                                                 let props = vec![
                                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                                                         key: PropName::Ident(quote_ident!("name")),
-                                                        value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: comp_ident.sym.clone(), raw: None, }))),
+                                                        value: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: comp_ident.sym.clone().into(), raw: None, }))),
                                                     }))),
                                                     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                                                         key: PropName::Ident(quote_ident!("id")),
@@ -580,7 +579,7 @@ impl VisitMut for JitterTransform {
                                         key: PropName::Ident(quote_ident!("hook")),
                                         value: Box::new(Expr::Lit(Lit::Str(Str {
                                             span: DUMMY_SP,
-                                            value: id.sym.clone(),
+                                            value: id.sym.clone().into(),
                                             raw: None,
                                         }))),
                                     }))),
