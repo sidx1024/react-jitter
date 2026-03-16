@@ -10,11 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 serde = "1"
 serde_json = "1"
-swc_core = { version = "27.0.6", features = ["ecma_plugin_transform", "ecma_utils", "common_concurrent"] }
-swc_ecma_ast = "12.0.0"
-swc_ecma_visit = { version = "12.0.0", features = ["path"] }
-swc_common = "12.0.1"
-swc_ecma_utils = "16.0.0"
+swc_core = { version = "47.0.2", features = ["ecma_plugin_transform", "ecma_utils", "ecma_ast", "ecma_visit", "common"] }
 glob = "0.3.2"
 sha2 = "0.10.9"
 hex = "0.4.3"
