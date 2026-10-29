@@ -1,5 +1,11 @@
 # react-jitter
 
+## 0.7.0
+
+### Minor Changes
+
+- ea1c150: Update the SWC plugin for Rspack 2 compatibility; standalone SWC users must also update to a compatible compiler.
+
 ## 0.6.0
 
 ### Minor Changes
