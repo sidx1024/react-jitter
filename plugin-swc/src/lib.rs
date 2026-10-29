@@ -198,7 +198,7 @@ impl JitterTransform {
         s.len() > 3 && s.chars().nth(3).is_some_and(|c| c.is_uppercase())
     }
 
-    fn instrument_function_body(&mut self, body: &mut BlockStmt, component_ident: &Ident, span: Span) {
+    fn instrument_function_body(&mut self, body: &mut FunctionBody, component_ident: &Ident, span: Span) {
         self.instrumented_any_function = true;
         let linecol = self.line_col(span);
         let hash = self.generate_location_hash(
@@ -494,15 +494,15 @@ impl VisitMut for JitterTransform {
                                             };
     
                                             arrow.body = Box::new(match &mut *arrow.body {
-                                                BlockStmtOrExpr::BlockStmt(block) => {
+                                                ArrowFunctionBody::FunctionBody(block) => {
                                                     block.visit_mut_with(self);
                                                     let mut inner_block = block.clone();
                                                     inner_block.stmts.insert(0, h_decl_stmt);
-                                                    BlockStmtOrExpr::BlockStmt(inner_block)
+                                                    ArrowFunctionBody::FunctionBody(inner_block)
                                                 }
-                                                BlockStmtOrExpr::Expr(expr) => {
+                                                ArrowFunctionBody::Expr(expr) => {
                                                     expr.visit_mut_with(self);
-                                                    BlockStmtOrExpr::BlockStmt(BlockStmt {
+                                                    ArrowFunctionBody::FunctionBody(FunctionBody {
                                                         span: expr.span(),
                                                         stmts: vec![
                                                             h_decl_stmt,
@@ -511,9 +511,10 @@ impl VisitMut for JitterTransform {
                                                                 arg: Some(self.wrap_in_h_re(expr.clone())),
                                                             }),
                                                         ],
-                                                        ctxt: SyntaxContext::empty(),
                                                     })
                                                 }
+                                                #[cfg(swc_ast_unknown)]
+                                                _ => panic!("unknown arrow function body"),
                                             });
                                         },
                                         Expr::Fn(fn_expr) => {
